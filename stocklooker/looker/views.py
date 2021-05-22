@@ -18,5 +18,5 @@ def index(request):
     return render(
         request,
         'index.html',
-        context={'num_rows':num_rows},
+        context={'num_rows': num_rows},
     )
