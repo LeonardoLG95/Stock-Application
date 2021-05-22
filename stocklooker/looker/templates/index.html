@@ -18,7 +18,15 @@
             </tr>
             <tr>
             {% for ticker in index %}
-
+                <td>{{ ticker.date }}</td>
+                <td>{{ ticker.name }}</td>
+                <td>{{ ticker.ticker }}</td>
+                <td>{{ ticker.value }}</td>
+                <td>{{ ticker.low }}</td>
+                <td>{{ ticker.high }}</td>
+                <td>{{ ticker.macd }}</td>
+                <td>{{ ticker.signal }}</td>
+                <td>{{ ticker.rsi }}</td>
             {% endfor %}
             </tr>
         </table>
