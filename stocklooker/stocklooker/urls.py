@@ -23,6 +23,6 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('myTestApp/', include('myTestApp.urls')),
-    path('/', RedirectView.as_view(url='myTestApp/', permanent=True))
+    path('looker/', include('looker.urls')),
+    path('/', RedirectView.as_view(url='looker/', permanent=True))
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
