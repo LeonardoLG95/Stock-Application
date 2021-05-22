@@ -1,9 +1,28 @@
 {% extends "base_generic.html" %}
 
 {% block content %}
-<h1>All stock data</h1>
-  <ul>
-    <li><strong>Number of rows:</strong> {{ num_rows }}</li>
-  </ul>
+    <h1>All stock data</h1>
 
+    {% if index %}
+        <table>
+            <tr>
+                <th>Date</th>
+                <th>Name</th>
+                <th>Ticker</th>
+                <th>Price</th>
+                <th>Low</th>
+                <th>High</th>
+                <th>Macd</th>
+                <th>Signal</th>
+                <th>Rsi</th>
+            </tr>
+            <tr>
+            {% for ticker in index %}
+
+            {% endfor %}
+            </tr>
+        </table>
+    {% else %}
+        <p>There is no data! try to update...</p>
+    {% endif %}
 {% endblock %}
