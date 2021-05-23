@@ -1,8 +1,7 @@
 import pandas_datareader as web
 import numpy as np
 from datetime import date
-from tqdm import tqdm
-import TecnicalDefs as calc
+import tecnical_defs as calc
 from pytickersymbols import PyTickerSymbols
 import re
 
@@ -56,11 +55,11 @@ High = {high}$ | {high_percent}%\n'
 
 
 def ticker_list(*markets: str) -> list:
-    '''
+    """
     Gives updated list with the names from Yahoo-Finance
     :param markets:
     :return:
-    '''
+    """
 
     stock_tickers = PyTickerSymbols()
     tickers = []
@@ -85,45 +84,46 @@ def analize_index(limit_close: int = 0, limit_rsi: int = 40, limit_macd: int = 0
     out_str = ''
     dw_str = 'Error al descargar: '
     err_str = 'Error al calcular: '
-    for e in tqdm(range(len(tickers)), desc="Analyzing"):
-        ticker = tickers[e]
+    for ticker in tickers:
         try:
             try:
                 dataset = web.DataReader(ticker, data_source='yahoo', start='1980-01-01', end=today)
-            except:
+            except Exception as e:
+                print(e)
                 dw_str += ticker + ' | '
 
             all_close = dataset['Close'].to_numpy()
             close = all_close[-1]
             if close <= limit_close or limit_close == 0:
                 all_low = dataset['Low'].to_numpy()
-                stop = calc.calcStop(all_low, 63)
-                stop_percent = calc.calcPercent(stop, close)
+                stop = calc.get_stop(all_low, 63)
+                stop_percent = calc.percent(stop, close)
 
                 all_high = dataset['High'].to_numpy()
-                high = calc.calcHigh(all_high, 63)
-                high_percent = calc.calcPercent(high, close)
+                high = calc.get_high(all_high, 63)
+                high_percent = calc.percent(high, close)
 
                 if high_percent > -stop_percent:
-                    rsi = calc.calcRsi(all_close)
+                    rsi = calc.rsi(all_close)
 
                     if rsi < limit_rsi or limit_rsi == 0:
-                        all_macd = calc.calcMacd(all_close)
+                        all_macd = calc.macd(all_close)
                         macd = all_macd[-1]
 
                         if macd < limit_macd:
-                            allSignal = calc.calcEMA(all_macd, 9)
-                            signal = allSignal[len(allSignal) - 1]
+                            all_signal = calc.ema(all_macd, 9)
+                            signal = all_signal[len(all_signal) - 1]
                             if signal < macd:
                                 last_date = dataset.index[-1]
-                                macdAverageHL = calc.calcMaxMacd(all_macd, allSignal)
-                                macd_low_average = macdAverageHL[0]
-                                macd_high_average = macdAverageHL[1]
+                                macd_average_h_l = calc.max_macd(all_macd, all_signal)
+                                macd_low_average = macd_average_h_l[0]
+                                macd_high_average = macd_average_h_l[1]
 
                                 out_str += string_result(ticker, last_date, close, rsi, macd, macd_low_average,
                                                          macd_high_average, signal, stop, stop_percent, high,
                                                          high_percent)
-        except:
+        except Exception as e:
+            print(e)
             err_str += ticker + ' | '
 
     if out_str != '':
@@ -153,20 +153,20 @@ def analize_wallet(*wallet):
         all_low = dataset['Low'].to_numpy()
         all_high = dataset['High'].to_numpy()
 
-        rsi = calc.calcRsi(all_close)
-        all_macd = calc.calcMacd(all_close)
+        rsi = calc.rsi(all_close)
+        all_macd = calc.macd(all_close)
 
         macd = all_macd[len(all_macd) - 1]
-        all_signal = calc.calcEMA(all_macd, 9)
+        all_signal = calc.ema(all_macd, 9)
         signal = all_signal[len(all_signal) - 1]
 
-        stop = calc.calcStop(all_low, 63)
-        stop_percent = calc.calcPercent(stop, close)
+        stop = calc.get_stop(all_low, 63)
+        stop_percent = calc.percent(stop, close)
 
-        high = calc.calcHigh(all_high, 63)
-        high_percent = calc.calcPercent(high, close)
+        high = calc.get_high(all_high, 63)
+        high_percent = calc.percent(high, close)
 
-        macd_average_hl = calc.calcMaxMacd(all_macd, all_signal)
+        macd_average_hl = calc.max_macd(all_macd, all_signal)
 
         macd_low_average = macd_average_hl[0]
         macd_high_average = macd_average_hl[1]
