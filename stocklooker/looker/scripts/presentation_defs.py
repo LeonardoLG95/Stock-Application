@@ -42,7 +42,7 @@ def string_result(ticker: str, last_date, close: float,
     high = round(high, 2)
     high_percent = round(high_percent, 2)
 
-    string_result = f'----------------{ticker}----------------\n \
+    result = f'----------------{ticker}----------------\n \
 Last date = {last_date} | Close = {close}$\n \
 RSI = {rsi}\n \
 MACD = {macd} | High avg (High) = {macd_high_average} | Low avg (Low) = {macd_low_average}\n \
@@ -51,7 +51,7 @@ Calculated in 3 months (63 periods):\n \
 Stop Loss = {stop}$ | {stop_percent}%\n \
 High = {high}$ | {high_percent}%\n'
 
-    return string_result
+    return result
 
 
 def ticker_list(*markets: str) -> list:
@@ -144,7 +144,8 @@ def analize_wallet(*wallet):
     for ticker in wallet_list:
         try:
             dataset = web.DataReader(ticker, data_source='yahoo', start='1980-01-01', end=today)
-        except:
+        except Exception as e:
+            print(e)
             print('Error al descargar el valor: ', ticker)
 
         last_date = dataset.index[-1]
