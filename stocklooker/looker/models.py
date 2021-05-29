@@ -2,11 +2,7 @@ from django.db import models
 from datetime import datetime
 
 class StockData(models.Model):
-    """
-    Una clase típica definiendo un modelo, derivado desde la clase Model.
-    """
-
-    # Campos
+    # Fields
     insert_date = models.DateTimeField(help_text="Registration date", default=datetime.now, blank=True)
     date = models.DateTimeField(help_text="Data date")
     ticker = models.CharField(max_length=10, help_text="Ticker for easy search the stock")

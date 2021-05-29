@@ -8,5 +8,4 @@ class StockListView(generic.ListView):
     model = StockData
 
     def get_queryset(self):
-        pass
-        # return StockData.objects.filter(date=0).distinct('ticker')
+        return StockData.objects.filter(date=0).distinct('ticker')
