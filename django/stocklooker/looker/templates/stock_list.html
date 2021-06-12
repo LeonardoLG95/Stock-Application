@@ -1,0 +1,46 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+    <h1>All stock data</h1>
+    <table>
+        <tr>
+            <th>Date</th>
+            <th>Name</th>
+            <th>Ticker</th>
+            <th>Price</th>
+            <th>Low</th>
+            <th>High</th>
+            <th>Macd</th>
+            <th>Signal</th>
+            <th>Rsi</th>
+        </tr>
+    {% if index %}
+        {% for ticker in index %}
+        <tr>
+            <td>{{ ticker.date }}</td>
+            <td>{{ ticker.name }}</td>
+            <td>{{ ticker.ticker }}</td>
+            <td>{{ ticker.value }}</td>
+            <td>{{ ticker.low }}</td>
+            <td>{{ ticker.high }}</td>
+            <td>{{ ticker.macd }}</td>
+            <td>{{ ticker.signal }}</td>
+            <td>{{ ticker.rsi }}</td>
+        </tr>
+        {% endfor %}
+
+    {% else %}
+        <tr>
+            <td> There </td>
+            <td> is </td>
+            <td> no </td>
+            <td> data! </td>
+            <td> try </td>
+            <td> to </td>
+            <td> update </td>
+            <td> ... </td>
+            <td> ... </td>
+        </tr>
+    {% endif %}
+    </table>
+{% endblock %}
