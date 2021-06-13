@@ -1,4 +1,5 @@
 import random
+import numpy
 
 
 def rsi(prices: numpy):
