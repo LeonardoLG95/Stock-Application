@@ -3,6 +3,9 @@ from datetime import datetime
 
 
 class StockData(models.Model):
+    ...
+    '''
+    In development for now, this is not relevant
     # Fields
     insert_date = models.DateTimeField(help_text="Registration date", default=datetime.now, blank=True)
     date = models.DateTimeField(help_text="Data date")
@@ -22,3 +25,4 @@ class StockData(models.Model):
         Cadena para representar el objeto MyModelName (en el sitio de Admin, etc.)
         """
         return self.field_name
+    '''

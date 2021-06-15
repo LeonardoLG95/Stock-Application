@@ -20,23 +20,15 @@ class YahooDriver:
         if markets:
             self.markets = markets
 
-    async def fetch_stocks(self) -> list:
+    async def fetch_stocks(self, ticker: str, name: str, queue: asyncio.Queue):
         """
         Return all stocks from the markets you put as a param in this driver (for now the default indexes)
         :return: a list of all the data from stocks in form of dictionary and the data in dataframe format
         """
-        tickers = self._ticker_list()
-        stocks = await asyncio.gather(*[
-            self._fetch_data(ticker, tickers[ticker])
-            for ticker in tickers
-        ])
-        await self._close_session()
+        await queue.put(await self._fetch_data(ticker, name))
+        print(f'Stock {name} downloaded')
 
-        stocks = [s for s in stocks if s]
-
-        return stocks
-
-    def _ticker_list(self) -> list:
+    def ticker_list(self) -> list:
         """
         Gives updated list with the tickers of index stocks for Yahoo-Finance
         :return: a list with all the tickers
@@ -120,13 +112,13 @@ class YahooDriver:
             prices = prices[prices["Data"].isnull()]
 
         prices = prices[["Date", "High", "Low", "Open", "Close", "Volume", "Adjclose"]]
-        prices = prices.rename(columns={"Adjclose": "Adj Close"})
+        # prices = prices.rename(columns={"Adjclose": "Adj Close"})
         prices = prices.set_index("Date")
 
         return prices.sort_index().dropna(how="all")
 
-    async def _close_session(self):
+    async def close_session(self):
         """
-        Close connection of the aiohttp
+        Close connection of the driver
         """
         await self.session.close()

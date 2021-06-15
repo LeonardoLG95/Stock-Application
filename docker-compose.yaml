@@ -16,3 +16,8 @@ services:
             - 5500:5432
         environment:
             POSTGRES_PASSWORD: password1234
+
+    grafana:
+        image: grafana/grafana:7.5.8
+        ports:
+            - 3000:3000
