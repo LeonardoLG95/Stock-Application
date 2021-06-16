@@ -40,7 +40,10 @@ class TimescaleDriver:
             if self.con:
                 await self.con.executemany('''INSERT INTO looker_stockdata_to_django(id, date, yahoo_ticker, name, 
                         close, low, high, macd_12_26, signal_12_26, rsi_14, open, volume) VALUES ($1, $2, $3, 
-                        $4, $5, $6, $7, $8, $9, $10, $11, $12);
+                        $4, $5, $6, $7, $8, $9, $10, $11, $12) ON CONFLICT (id) DO UPDATE SET (date, yahoo_ticker, name, 
+                        close, low, high, macd_12_26, signal_12_26, rsi_14, open, volume) = (EXCLUDED.date, 
+                        EXCLUDED.yahoo_ticker, EXCLUDED.name, EXCLUDED.close, EXCLUDED.low, EXCLUDED.high, 
+                        EXCLUDED.macd_12_26, EXCLUDED.signal_12_26, EXCLUDED.rsi_14, EXCLUDED.open, EXCLUDED.volume); 
                     ''', stock_data)
                 print(f'Inserted : {name}')
             else:

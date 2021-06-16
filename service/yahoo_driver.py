@@ -104,15 +104,18 @@ class YahooDriver:
             data = j["context"]["dispatcher"]["stores"]["HistoricalPriceStore"]
         except KeyError:
             return DataFrame(None)
+        
+        if not data.get("prices"):
+            return DataFrame(None)
         prices = DataFrame(data["prices"])
         prices.columns = [col.capitalize() for col in prices.columns]
+        print(prices.columns)
         prices["Date"] = to_datetime(to_datetime(prices["Date"], unit="s").dt.date)
 
         if "Data" in prices.columns:
             prices = prices[prices["Data"].isnull()]
 
         prices = prices[["Date", "High", "Low", "Open", "Close", "Volume", "Adjclose"]]
-        # prices = prices.rename(columns={"Adjclose": "Adj Close"})
         prices = prices.set_index("Date")
 
         return prices.sort_index().dropna(how="all")
