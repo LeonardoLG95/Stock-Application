@@ -3,24 +3,26 @@ import numpy
 
 
 def rsi(prices: numpy):
-    prices = prices[-14:]
-    i = 1
-    avg_up = 0
-    avg_down = 0
+    result = []
+    for i in range(len(prices)):
+        if i > 13:
+            x = 14
+            avg_up = 0
+            avg_down = 0
 
-    while i < 14:
-        difference = percent(prices[i], prices[i-1])
-        if 0 < difference:
-            avg_up += difference
-        else:
-            avg_down += -difference
-        i += 1
+            while x > 0:
+                difference = percent(prices[i-x], prices[i-x+1])
+                if 0 < difference:
+                    avg_up += difference
+                else:
+                    avg_down += -difference
+                x -= 1
 
-    avg_up = division(avg_up, 14)
-    avg_down = division(avg_down, 14)
+            avg_up = division(avg_up, 14)
+            avg_down = division(avg_down, 14)
 
-    rs = division(avg_up, avg_down)
-    result = 100 - division(100, (1+rs))
+            rs = division(avg_up, avg_down)
+            result.append(100 - division(100, (1+rs)))
 
     return result
 

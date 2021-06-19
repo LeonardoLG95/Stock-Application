@@ -20,14 +20,6 @@ class YahooDriver:
         if markets:
             self.markets = markets
 
-    async def fetch_stocks(self, ticker: str, name: str, queue: asyncio.Queue):
-        """
-        Return all stocks from the markets you put as a param in this driver (for now the default indexes)
-        :return: a list of all the data from stocks in form of dictionary and the data in dataframe format
-        """
-        await queue.put(await self._fetch_data(ticker, name))
-        print(f'Stock {name} downloaded')
-
     def ticker_list(self) -> list:
         """
         Gives updated list with the tickers of index stocks for Yahoo-Finance
@@ -49,10 +41,12 @@ class YahooDriver:
 
         return tickers
 
-    async def _fetch_data(self, ticker: str, name: str) -> dict:
+    async def fetch_stock(self, ticker: str, name: str, queue: asyncio.Queue) -> None:
         """
-        Return all the html without any format
+        Return a dict with stock data or empty (in case don't find it) in a async queue.
         :param ticker: the identification of the desired stock
+        :param name: the name of the desired stock
+        :param queue: a queue where the result will be stored
         :return: a str, all the html where is the information
         """
         response_html = None
@@ -78,19 +72,26 @@ class YahooDriver:
                 continue
 
         if not response_html:
-            return {}
+            await queue.put({})
+            return None
         dataframe = self._prepare_data(response_html)
         if dataframe.empty:
-            return {}
+            await queue.put({})
+            return None
 
-        stock = {
+        await queue.put({
             ticker: {
                 'name': name,
                 'data': dataframe
             }
-        }
+        })
+        print(f'Downloaded : {name}, ticker {ticker}')
 
-        return stock
+    async def close_session(self):
+        """
+        Close connection of the driver
+        """
+        await self.session.close()
 
     def _prepare_data(self, html: str) -> DataFrame:
         """
@@ -109,7 +110,6 @@ class YahooDriver:
             return DataFrame(None)
         prices = DataFrame(data["prices"])
         prices.columns = [col.capitalize() for col in prices.columns]
-        print(prices.columns)
         prices["Date"] = to_datetime(to_datetime(prices["Date"], unit="s").dt.date)
 
         if "Data" in prices.columns:
@@ -119,9 +119,3 @@ class YahooDriver:
         prices = prices.set_index("Date")
 
         return prices.sort_index().dropna(how="all")
-
-    async def close_session(self):
-        """
-        Close connection of the driver
-        """
-        await self.session.close()
