@@ -1,23 +1,32 @@
-import time
-import tecnical_defs as calc
 import asyncio
-from yahoo_driver import YahooDriver
+import time
+
+import ticker_symbols as ts
 from timescale_driver import TimescaleDriver
+from yahoo_driver import YahooDriver
 
 
 async def main():
-    queue = asyncio.Queue()
+    ticker_list = ts.yahoo_ticker_list()
+    info_queue = asyncio.Queue()
+    data_queue = asyncio.Queue()
     yahoo = YahooDriver()
-    ticker_list = yahoo.ticker_list()
     db = TimescaleDriver()
     await db.connect()
+    '''
+    1) put(info_queue) last time updated -> 
+    2) get(info_queue) for fetch data and put(data_queue) data -> 
+    3) get(data_queue) for insert
+    '''
     await asyncio.gather(
-        *[yahoo.fetch_stock(ticker, ticker_list[ticker], queue)
+        *[db.last_time_updated(ticker, ticker_list[ticker], info_queue)
           for ticker in ticker_list],
-        db.insert_data(queue, len(ticker_list))
+        *[yahoo.fetch_stock(info_queue, data_queue)
+          for _ in ticker_list],
+        *[db.insert_data(data_queue)
+          for _ in ticker_list]
     )
-    await yahoo.close_session()
-    # db.close_connection()
+    await yahoo.close()
 
 
 s = time.perf_counter()

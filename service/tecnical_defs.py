@@ -1,8 +1,12 @@
-import random
 import numpy
 
 
-def rsi(prices: numpy):
+def rsi(prices: numpy) -> list:
+    """
+    Calculates the rsi for an array of numbers
+    :param prices: numpy array of numbers
+    :return: a list with all the results
+    """
     result = []
     for i in range(len(prices)):
         if i > 13:
@@ -27,7 +31,12 @@ def rsi(prices: numpy):
     return result
 
 
-def macd(prices):
+def macd(prices: numpy) -> list:
+    """
+    Calculates the macd for a desired array of numbers
+    :param prices: numpy array of numbers
+    :return: a list with all the results
+    """
     ema1 = ema(prices, 12)
     ema2 = ema(prices, 26)
 
@@ -40,6 +49,70 @@ def macd(prices):
     return result
 
 
+def ema(prices: numpy, period: int) -> list:
+    """
+    Calculates the ema indicator
+    :param prices: numpy array with all the desired numbers
+    :param period: number of periods
+    :return: return a list of ema values
+    """
+    multiplier = division(2, (period + 1))
+
+    i = period-1
+    x = 0
+    result = []
+    while i < len(prices):
+        if i == period - 1:
+            sma_value = sma(prices, period)
+            result.append((prices[i] - sma_value) * multiplier + sma_value)
+            x = 0
+        else:
+            result.append((prices[i] - result[x]) * multiplier + result[x])
+            x += 1
+        i += 1
+
+    return result
+
+
+def sma(prices: numpy, period=0):
+    """
+    Calculate the sma for an array of numbers
+    :param prices: numpy array of prices
+    :param period: period of sessions you want to calculate
+    :return: sma of the prices in the specific period or None if not period set
+    """
+    i = 0
+    result = 0
+    if period <= 0:
+        raise NotImplemented('You need to set a positive period!')
+
+    prices = prices[-period:]
+
+    while i < period-1:
+        result += prices[i]
+        i += 1
+
+    result = division(result, period)
+
+    return result
+
+
+def percent(new, old):
+    result = (division((new - old), old)) * 100
+
+    return result
+
+
+def division(dividend, divisor):
+    if dividend != 0 and divisor != 0:
+        result = dividend / divisor
+    else:
+        result = 0
+
+    return result
+
+
+'''
 def average_macd_values(macd_value: list, start_points: list, end_points: list, is_up: bool):
     result = 0
     i = 0
@@ -116,71 +189,4 @@ def max_macd(macd_result, signal):
     values.append(macd_up_avg)
     pass
     return values
-
-
-def sma(prices, period=0):
-    i = 0
-    result = 0
-    if period != 0:
-        prices = prices[-period:]
-
-        while i < period-1:
-            result += prices[i]
-            i += 1
-
-        result = division(result, period)
-    else:
-        while i < len(prices):
-            result += prices[i]
-            i += 1
-        result = sma(result, len(prices))
-
-    return result
-
-
-def ema(prices, period):
-    multiplier = division(2, (period + 1))
-
-    i = period-1
-    x = 0
-    result = []
-    while i < len(prices):
-        if i == period - 1:
-            sma_value = sma(prices, period)
-            result.append((prices[i] - sma_value) * multiplier + sma_value)
-            x = 0
-        else:
-            result.append((prices[i] - result[x]) * multiplier + result[x])
-            x += 1
-        i += 1
-
-    return result
-
-
-def get_stop(prices, period):
-    prices = prices[-period:]
-    stop = min(prices) - 1 - random.random()
-
-    return stop
-
-
-def get_high(prices, period):
-    prices = prices[-period:]
-    result = max(prices)
-
-    return result
-
-
-def percent(new, old):
-    result = (division((new - old), old)) * 100
-
-    return result
-
-
-def division(dividend, divisor):
-    if dividend != 0 and divisor != 0:
-        result = dividend / divisor
-    else:
-        result = 0
-
-    return result
+'''
