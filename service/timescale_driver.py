@@ -26,10 +26,7 @@ class TimescaleDriver:
         :param queue: where the result is stored
         :return:
         """
-        con = await self.pool.acquire()
-        if not con:
-            raise ConnectionError('Connection not created please call first the method connect() from this driver!')
-
+        con = await self._connect()
         insert_date = await con.fetchval('''SELECT insert_date FROM looker_stockdata_to_django 
                                         WHERE yahoo_ticker=($1) ORDER BY date DESC LIMIT 1;''', ticker)
         await con.close()
@@ -88,10 +85,7 @@ class TimescaleDriver:
         open_values = stock['Open'].to_numpy()
         volume = stock['Volume'].to_numpy()
 
-        con = await self.pool.acquire()
-        if not con:
-            raise ConnectionError('Connection not created please call first the method connect() from this driver!')
-
+        con = await self._connect()
         if last_time:
             all_close = await con.fetch('''SELECT close FROM looker_stockdata_to_django 
                                                         WHERE yahoo_ticker=($1) ORDER BY date ASC;''', ticker)
@@ -128,6 +122,20 @@ class TimescaleDriver:
                 EXCLUDED.yahoo_ticker, EXCLUDED.close, EXCLUDED.low, EXCLUDED.high, 
                 EXCLUDED.macd_12_26, EXCLUDED.signal_12_26, EXCLUDED.rsi_14, EXCLUDED.open, EXCLUDED.volume);'''
                               , stock_data)
+        fetch_name = await con.fetchval('''SELECT name FROM stock_names WHERE ticker=($1);''', ticker)
+        if not fetch_name:
+            await con.execute('''INSERT INTO stock_names(ticker, name) VALUES ($1, $2);''', ticker, name)
         await con.close()
 
         print(f'Inserted : {name}, ticker: {ticker}')
+
+    async def _connect(self):
+        """
+        Return pool for queries
+        :return: pool.acquire()
+        """
+        con = await self.pool.acquire()
+        if not con:
+            raise ConnectionError('Connection not created please call first the method connect() from this driver!')
+
+        return con
