@@ -14,7 +14,7 @@ class TimescaleDriver:
 
     async def connect(self):
         """
-        Start connection, create pool for all the queries
+        Create the pool for all the queries
         """
         self.pool = await asyncpg.create_pool(dsn=self.dsn)
 
@@ -27,7 +27,7 @@ class TimescaleDriver:
         :return:
         """
         con = await self._connect()
-        insert_date = await con.fetchval('''SELECT insert_date FROM looker_stockdata_to_django 
+        insert_date = await con.fetchval('''SELECT insert_date FROM looker_stockdata 
                                         WHERE yahoo_ticker=($1) ORDER BY date DESC LIMIT 1;''', ticker)
         await con.close()
 
@@ -87,7 +87,7 @@ class TimescaleDriver:
 
         con = await self._connect()
         if last_time:
-            all_close = await con.fetch('''SELECT close FROM looker_stockdata_to_django 
+            all_close = await con.fetch('''SELECT close FROM looker_stockdata 
                                                         WHERE yahoo_ticker=($1) ORDER BY date ASC;''', ticker)
             close_for_calc = np.array([])
             for price in all_close:
@@ -115,23 +115,23 @@ class TimescaleDriver:
             for i in range(len(date))
         ]
 
-        await con.executemany('''INSERT INTO looker_stockdata_to_django(id, date, yahoo_ticker, 
+        await con.executemany('''INSERT INTO looker_stockdata(id, date, yahoo_ticker, 
                 close, low, high, macd_12_26, signal_12_26, rsi_14, open, volume) VALUES ($1, $2, $3, 
                 $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (id) DO UPDATE SET (date, yahoo_ticker, 
                 close, low, high, macd_12_26, signal_12_26, rsi_14, open, volume) = (EXCLUDED.date, 
                 EXCLUDED.yahoo_ticker, EXCLUDED.close, EXCLUDED.low, EXCLUDED.high, 
                 EXCLUDED.macd_12_26, EXCLUDED.signal_12_26, EXCLUDED.rsi_14, EXCLUDED.open, EXCLUDED.volume);'''
                               , stock_data)
-        fetch_name = await con.fetchval('''SELECT name FROM stock_names WHERE ticker=($1);''', ticker)
+        fetch_name = await con.fetchval('''SELECT name FROM looker_names WHERE yahoo_ticker=($1);''', ticker)
         if not fetch_name:
-            await con.execute('''INSERT INTO stock_names(ticker, name) VALUES ($1, $2);''', ticker, name)
+            await con.execute('''INSERT INTO looker_names(yahoo_ticker, name) VALUES ($1, $2);''', ticker, name)
         await con.close()
 
         print(f'Inserted : {name}, ticker: {ticker}')
 
     async def _connect(self):
         """
-        Return pool for queries
+        Return connection to pool for queries
         :return: pool.acquire()
         """
         con = await self.pool.acquire()
