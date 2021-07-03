@@ -11,7 +11,7 @@ class StockData(models.Model):
     close = models.FloatField(help_text="Value of the stock at the end of the day")
     low = models.FloatField(help_text="Low value on the day")
     high = models.FloatField(help_text="High value on the day")
-    volume = models.IntegerField(help_text="Volume of transactions this day")
+    volume = models.BigIntegerField(help_text="Volume of transactions this day")
     macd_12_26 = models.FloatField(help_text="Macd value on that day")
     signal_12_26 = models.FloatField(help_text="Signal value on that day")
     rsi_14 = models.FloatField(help_text="Rsi value on that day")
