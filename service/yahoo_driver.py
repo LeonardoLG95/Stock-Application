@@ -86,7 +86,7 @@ class YahooDriver:
             'data': dataframe
         })
 
-        print(f'Downloaded : {name}, ticker : {ticker}')
+        # print(f'Downloaded : {name}, ticker : {ticker}')
 
     async def close(self) -> None:
         """

@@ -127,7 +127,7 @@ class TimescaleDriver:
             await con.execute('''INSERT INTO looker_names(yahoo_ticker, name) VALUES ($1, $2);''', ticker, name)
         await con.close()
 
-        print(f'Inserted : {name}, ticker: {ticker}')
+        # print(f'Inserted : {name}, ticker: {ticker}')
 
     async def _connect(self):
         """
