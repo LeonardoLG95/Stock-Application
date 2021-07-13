@@ -9,13 +9,12 @@ def rsi(prices: numpy) -> list:
     """
     result = []
     for i in range(len(prices)):
-        if i > 13:
-            x = 14
+        if i > 14:
+            x = 13
             avg_up = 0
             avg_down = 0
-
-            while x > 0:
-                difference = percent(prices[i-x], prices[i-x+1])
+            while x >= 0:
+                difference = percent(prices[i-x], prices[i-x-1])
                 if 0 < difference:
                     avg_up += difference
                 else:

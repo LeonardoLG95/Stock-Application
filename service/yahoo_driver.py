@@ -7,7 +7,7 @@ from aiohttp import client_exceptions
 import aiohttp
 
 from pandas import DataFrame, to_datetime
-from datetime import datetime
+from datetime import datetime, date
 
 
 class YahooDriver:
@@ -79,12 +79,9 @@ class YahooDriver:
             print(f'Failed to download, dataframe empty : {name}, ticker : {ticker}')
             return None
 
-        await data_queue.put({
-            'ticker': ticker,
-            'name': name,
-            'last_time': last_time,
-            'data': dataframe
-        })
+        info['data'] = dataframe
+        # print(info)
+        await data_queue.put(info)
 
         # print(f'Downloaded : {name}, ticker : {ticker}')
 
@@ -95,7 +92,7 @@ class YahooDriver:
         """
         await self.session.close()
 
-    def _set_interval(self, start: datetime) -> None:
+    def _set_interval(self, start: date) -> None:
         """
         Sets the start time value in the params of the petition
         :param start: start time from where you want to make the petition (inclusive "CHECK")
@@ -104,7 +101,8 @@ class YahooDriver:
         if not start:
             raise NotImplementedError('set_interval called without start')
 
-        self.params = f"history?period1={int(datetime.timestamp(start))}&period2={int(time.time())}" \
+        self.params = f"history?period1={int(time.mktime(datetime.strptime(str(start), '%Y-%m-%d').timetuple()))}" \
+                      f"&period2={int(time.time())}" \
                       f"&interval=1d&frequency=1d&filter=history"
 
     def _prepare_data(self, html: str) -> DataFrame:

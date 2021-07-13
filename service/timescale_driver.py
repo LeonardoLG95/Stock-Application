@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 import tecnical_defs as calc
 import asyncio
 import asyncpg
@@ -8,7 +8,7 @@ import numpy as np
 
 class TimescaleDriver:
     def __init__(self, db: str = 'stock', user: str = 'postgres', password: str = 'password1234',
-                 host: str = '127.0.0.1', port: str = '5500'):
+                 host: str = 'localhost', port: str = '5500'):
         self.dsn = f'postgres://{user}:{password}@{host}:{port}/{db}'
         self.pool = None
 
@@ -27,36 +27,13 @@ class TimescaleDriver:
         :return:
         """
         con = await self._connect()
-        insert_date = await con.fetchval('''SELECT insert_date FROM looker_stockdata 
-                                        WHERE yahoo_ticker=($1) ORDER BY date DESC LIMIT 1;''', ticker)
+        date = await con.fetchval('''SELECT insert_date FROM looker_stockdata WHERE insert_date <= stock_date AND yahoo_ticker=$1 ORDER BY stock_date ASC LIMIT 1;''', ticker)
+        if not date:
+            date = await con.fetchval('''SELECT stock_date FROM looker_stockdata WHERE yahoo_ticker=$1 ORDER BY stock_date DESC LIMIT 1;''', ticker)
         await con.close()
-
-        if not insert_date:
-            await queue.put({'ticker': ticker,
-                             'name': name,
-                             'last_time': None
-                             })
-            return None
-
-        insert_date += timedelta(hours=2)
-        year = insert_date.year
-        month = insert_date.month
-        day = insert_date.day
-
-        close_date = datetime(year, month, day, 22, 1, 0, tzinfo=timezone.utc)
-
-        # If was updated before close, recover that day
-        if insert_date < close_date:
-            await queue.put({'ticker': ticker,
-                             'name': name,
-                             'last_time': datetime(year, month, day, tzinfo=timezone.utc)
-                             })
-            return None
-
-        # If was updated after close, recover since next
         await queue.put({'ticker': ticker,
                          'name': name,
-                         'last_time': datetime(year, month, day + 1, tzinfo=timezone.utc)
+                         'last_time': date
                          })
 
     async def insert_data(self, queue: asyncio.Queue) -> None:
@@ -88,7 +65,7 @@ class TimescaleDriver:
         con = await self._connect()
         if last_time:
             all_close = await con.fetch('''SELECT close FROM looker_stockdata 
-                                                        WHERE yahoo_ticker=($1) ORDER BY date ASC;''', ticker)
+                                                        WHERE yahoo_ticker=($1) ORDER BY stock_date ASC;''', ticker)
             close_for_calc = np.array([])
             for price in all_close:
                 close_for_calc = np.append(close_for_calc, price.get('close'))
@@ -96,12 +73,14 @@ class TimescaleDriver:
 
         macd = calc.macd(close_for_calc)
         signal = calc.ema(macd, 9)
+
+        # print(close_for_calc)
         rsi = calc.rsi(close_for_calc)
 
         if not last_time:
             macd_12_26 = np.insert(macd, 0, [np.NaN for _ in range(25)], axis=0)
             signal_12_26 = np.insert(signal, 0, [np.NaN for _ in range(33)], axis=0)
-            rsi_14 = np.insert(rsi, 0, [np.NaN for _ in range(14)], axis=0)
+            rsi_14 = np.insert(rsi, 0, [np.NaN for _ in range(15)], axis=0)
         else:
             count_prices = len(close)
             macd_12_26 = macd[-count_prices:]
@@ -115,10 +94,10 @@ class TimescaleDriver:
             for i in range(len(date))
         ]
 
-        await con.executemany('''INSERT INTO looker_stockdata(id, date, yahoo_ticker, 
+        await con.executemany('''INSERT INTO looker_stockdata(id, stock_date, yahoo_ticker, 
                 close, low, high, macd_12_26, signal_12_26, rsi_14, open, volume) VALUES ($1, $2, $3, 
-                $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (id) DO UPDATE SET (date, yahoo_ticker, 
-                close, low, high, macd_12_26, signal_12_26, rsi_14, open, volume) = (EXCLUDED.date, 
+                $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (id) DO UPDATE SET (stock_date, yahoo_ticker, 
+                close, low, high, macd_12_26, signal_12_26, rsi_14, open, volume) = (EXCLUDED.stock_date, 
                 EXCLUDED.yahoo_ticker, EXCLUDED.close, EXCLUDED.low, EXCLUDED.high, 
                 EXCLUDED.macd_12_26, EXCLUDED.signal_12_26, EXCLUDED.rsi_14, EXCLUDED.open, EXCLUDED.volume);'''
                               , stock_data)
@@ -127,15 +106,17 @@ class TimescaleDriver:
             await con.execute('''INSERT INTO looker_names(yahoo_ticker, name) VALUES ($1, $2);''', ticker, name)
         await con.close()
 
-        # print(f'Inserted : {name}, ticker: {ticker}')
-
     async def _connect(self):
         """
         Return connection to pool for queries
         :return: pool.acquire()
         """
-        con = await self.pool.acquire()
-        if not con:
-            raise ConnectionError('Connection not created please call first the method connect() from this driver!')
+        ok = False
+        while not ok:
+            try:
+                con = await self.pool.acquire()
+                ok = True
+            except asyncio.TimeoutError as e:
+                print(e)
 
         return con

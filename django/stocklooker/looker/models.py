@@ -1,11 +1,11 @@
 from django.db import models
-from datetime import datetime
+from datetime import date
 
 
 class StockData(models.Model):
     id = models.CharField(max_length=50, help_text="Id mix of date-ticker", primary_key=True)
-    insert_date = models.DateTimeField(help_text="Registration date", default=datetime.now(), blank=True)
-    date = models.DateTimeField(help_text="Data date")
+    insert_date = models.DateField(help_text="Registration date", blank=True)
+    stock_date = models.DateField(help_text="Data date")
     yahoo_ticker = models.CharField(max_length=10, help_text="Ticker for easy search the stock")
     open = models.FloatField(help_text="Value of the stock at the start of the day")
     close = models.FloatField(help_text="Value of the stock at the end of the day")
