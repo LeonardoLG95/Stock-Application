@@ -16,11 +16,3 @@ services:
             - 5500:5432
         environment:
             POSTGRES_PASSWORD: password1234
-
-    grafana:
-        image: grafana/grafana:7.5.8
-        volumes:
-            - ./grafana:/var/lib/grafana
-        ports:
-            - 3000:3000
-        user: "472"
