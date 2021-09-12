@@ -1,12 +1,12 @@
 version: "3.7"
 
 services:
-    django:
-        image: stocklooker
-        volumes:
-            - ./django/stocklooker:/stocklooker
-        ports:
-            - 8000:8000
+#    django:
+#        image: stocklooker
+#        volumes:
+#            - ./django/stocklooker:/stocklooker
+#        ports:
+#            - 8000:8000
 
     timescale:
         image: timescale/timescaledb:latest-pg12

@@ -32,6 +32,7 @@ def getInflationRate(year):
 
     return ir
 
+
 def calcRiskFreeRate():
     # get treasure note
     gbr = getTreasuryNote()
@@ -40,6 +41,7 @@ def calcRiskFreeRate():
     rfr = ((1+gbr)/(1+ir))-1
 
     return rfr
+
 
 def CAPM():
     '''
@@ -62,6 +64,7 @@ def CAPM():
 
     :return:
     '''
+
 
 def analizeAnnualBalance(ticker):
 

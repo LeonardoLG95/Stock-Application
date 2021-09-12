@@ -1,9 +1,9 @@
 import asyncio
 import time
 
-import ticker_symbols as ts
-from timescale_driver import TimescaleDriver
-from yahoo_driver import YahooDriver
+from service.utilities import ticker_symbols as ts
+from service.drivers.timescale_driver import TimescaleDriver
+from service.drivers.yahoo_driver import YahooDriver
 from datetime import datetime, timedelta
 
 

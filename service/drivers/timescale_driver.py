@@ -1,6 +1,6 @@
 import re
 from datetime import datetime
-import tecnical_defs as calc
+from service.utilities import tecnical_calc as calc
 import asyncio
 import asyncpg
 import numpy as np
