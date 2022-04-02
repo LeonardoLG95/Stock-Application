@@ -5,7 +5,9 @@ class Logger:
     def __init__(self, application_name: str):
         self.log_config = {'application': f'[{application_name.upper()}]'}
         logging.basicConfig(format='%(asctime)s %(application)s: %(message)s')
+
         self.log = logging.getLogger(application_name.upper())
+        self.log.setLevel(logging.DEBUG)
 
     def info(self, message):
         self.log.info(message, extra=self.log_config)

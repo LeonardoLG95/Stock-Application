@@ -3,7 +3,6 @@ import asyncio
 import asyncpg
 
 
-
 class TimescaleDriver:
     def __init__(self, log, user: str = 'postgres', password: str = 'password1234',
                  host: str = 'localhost', port: str = '5500', db: str = 'stock'):
@@ -20,7 +19,8 @@ class TimescaleDriver:
             BEGIN;
             CREATE TABLE IF NOT EXISTS last_candle(
                 time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-                table_name VARCHAR(50) NOT NULL PRIMARY KEY,
+                symbol VARCHAR(30) NOT NULL,
+                resolution CHAR NOT NULL,
                 close REAL NOT NULL,
                 high REAL NOT NULL,
                 low REAL NOT NULL,
@@ -28,26 +28,42 @@ class TimescaleDriver:
                 macd_hist REAL NOT NULL,
                 macd_signal REAL NOT NULL,
                 open REAL NOT NULL,
-                volume BIGSERIAL NOT NULL
+                volume BIGSERIAL NOT NULL,
+                PRIMARY KEY(symbol, resolution)
             );
             COMMIT;
         """)
         await con.close()
 
-    async def create_symbol_resolution_table(self, symbol, resolution):
-        if '.' in symbol:
-            symbol = symbol.replace('.', '_')
-        if '-' in symbol:
-            symbol = symbol.replace('-', '_')
-        if ':' in symbol:
-            symbol = symbol.replace(':', '_')
+    async def create_stock_info_table(self):
+        con = await self._get_pool()
+        await con.execute(f"""
+                    BEGIN;
+                    CREATE TABLE IF NOT EXISTS stock_info(
+                        symbol VARCHAR(30) NOT NULL PRIMARY KEY,
+                        name VARCHAR(200) NOT NULL,
+                        country VARCHAR(200) NOT NULL,
+                        currency VARCHAR(50) NOT NULL,
+                        exchange VARCHAR(200) NOT NULL,
+                        ipo TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                        market_capitalization BIGSERIAL NOT NULL,
+                        share_outstanding REAL NOT NULL,
+                        website VARCHAR(200) NOT NULL,
+                        industry VARCHAR(200) NOT NULL
+                    );
+                    COMMIT;
+                """)
 
-        table = f'{symbol}_{resolution}'
+        await con.close()
+
+    async def create_stock_price_table(self):
         con = await self._get_pool()
         await con.execute(f"""
             BEGIN;
-            CREATE TABLE IF NOT EXISTS {table}(
-                time TIMESTAMP WITHOUT TIME ZONE NOT NULL primary key,
+            CREATE TABLE IF NOT EXISTS stock_price(
+                time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                symbol VARCHAR(30) NOT NULL,
+                resolution CHAR NOT NULL,
                 close REAL NOT NULL,
                 high REAL NOT NULL,
                 low REAL NOT NULL,
@@ -55,24 +71,39 @@ class TimescaleDriver:
                 macd_hist REAL NOT NULL,
                 macd_signal REAL NOT NULL,
                 open REAL NOT NULL,
-                volume BIGSERIAL NOT NULL
+                volume BIGSERIAL NOT NULL,
+                PRIMARY KEY(time, symbol, resolution)
             );
-            SELECT create_hypertable('{table}','time', if_not_exists => TRUE);
+            SELECT create_hypertable('stock_price','time', if_not_exists => TRUE);
             COMMIT;
         """)
         await con.close()
 
-        return table
-
-    async def persist_data_on_tables(self, data: list, table: str) -> None:
+    async def persist_info_data(self, data):
         con = await self._get_pool()
-        self.log.error(f'persisting data in table {table}...')
+        self.log.info(f'persisting info of {data[1]}...')
+        async with con.transaction():
+            await con.execute("""
+                        INSERT INTO stock_info(symbol, name, country, currency, exchange, ipo, 
+                        market_capitalization, share_outstanding, website, industry) 
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+                        ON CONFLICT (symbol) DO UPDATE SET (name, country, currency, exchange, ipo, 
+                        market_capitalization, share_outstanding, website, industry) = 
+                        (EXCLUDED.name, EXCLUDED.country, EXCLUDED.currency, EXCLUDED.exchange, EXCLUDED.ipo, 
+                        EXCLUDED.market_capitalization, EXCLUDED.share_outstanding, EXCLUDED.website, EXCLUDED.industry);
+                    """, *data)
+
+        await con.close()
+
+    async def persist_price_data(self, data: list) -> None:
+        con = await self._get_pool()
+        self.log.info(f'persisting data from {data[0][1]} in resolution {data[0][2]}...')
         async with con.transaction():
             await con.executemany(f"""
-                INSERT INTO {table}(time, close, high, low, 
+                INSERT INTO stock_price(time, symbol, resolution, close, high, low, 
                 macd, macd_hist, macd_signal, open, volume) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
-                ON CONFLICT (time) DO UPDATE SET (close, high, low, 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
+                ON CONFLICT (time, symbol, resolution) DO UPDATE SET (close, high, low, 
                 macd, macd_hist, macd_signal, open, volume) = 
                 (EXCLUDED.close, EXCLUDED.high, EXCLUDED.low, 
                 EXCLUDED.macd, EXCLUDED.macd_hist, EXCLUDED.macd_signal, 
@@ -80,15 +111,15 @@ class TimescaleDriver:
             """, data)
 
             await con.execute("""
-                INSERT INTO last_candle(time, table_name, close, high, low, 
+                INSERT INTO last_candle(time, symbol, resolution, close, high, low, 
                 macd, macd_hist, macd_signal, open, volume) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
-                ON CONFLICT (table_name) DO UPDATE SET (time, close, high, low, 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
+                ON CONFLICT (symbol, resolution) DO UPDATE SET (time, close, high, low, 
                 macd, macd_hist, macd_signal, open, volume) = 
                 (EXCLUDED.time, EXCLUDED.close, EXCLUDED.high, EXCLUDED.low, 
                 EXCLUDED.macd, EXCLUDED.macd_hist, EXCLUDED.macd_signal, 
                 EXCLUDED.open, EXCLUDED.volume);
-            """, *data[len(data)-1][:1] + (table,) + data[len(data)-1][1:])
+            """, *data[len(data)-1])
 
         await con.close()
 

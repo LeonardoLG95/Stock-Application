@@ -16,6 +16,7 @@ class FinnhubDriver:
         self.log = log
         self.number_petitions = 0
         self.candle_keys = ['t', 'c', 'h', 'l', 'macd', 'macdHist', 'macdSignal', 'o', 'v']
+        self.info_keys = ['name', 'country', 'currency', 'exchange', 'ipo', 'marketCapitalization', 'shareOutstanding', 'weburl', 'finnhubIndustry']
         self.start_time = time.perf_counter()
 
     @staticmethod
@@ -58,7 +59,7 @@ class FinnhubDriver:
         return CONSTANTS['resolutions']
 
     @staticmethod
-    def get_crypto_symbols():
+    def get_crypto_symbols() -> set:
         return CONSTANTS['crypto']
 
     async def get_symbols_of_index(self, index_symbol: str) -> set:
@@ -66,44 +67,80 @@ class FinnhubDriver:
 
         return {symbol for symbol in response['constituents']}
 
-    async def get_symbol_data(self, symbol, resolution):
-        data = await self._fetch_symbol_data(symbol, resolution)
-        if data and self._check_integrity_keys(list(data.keys())):
-            return self._parse_symbol_data(data)
+    async def get_symbol_info(self, symbol: str):
+        data = await self._fetch_symbol_info(symbol)
+        if data and self._check_integrity_info_keys(list(data.keys())):
+            info = (symbol, )
+            return info + self._parse_symbol_info(data)
+        return ()
 
-        return []
-
-    async def _fetch_symbol_data(self, symbol, resolution):
-        now = self._now()
-        data = await self._get(f"{self.url}{CONSTANTS['stock_endpoint'](symbol, resolution, now)}{API_TOKEN}")
+    async def _fetch_symbol_info(self, symbol: str):
+        data = await self._get(f"{self.url}{CONSTANTS['stock_info_endpoint'](symbol)}{API_TOKEN}")
 
         return data
 
-    def _check_integrity_keys(self, keys: list):
+    def _check_integrity_info_keys(self, keys: list):
+        for d in self.info_keys:
+            if d not in keys:
+                return False
+
+        return True
+
+    def _parse_symbol_info(self, data: dict) -> tuple:
+        info = _handle_key_error(self._info_dict_to_tuple(data))
+
+        # To avoid return a list which is necessary for the price method
+        return info if isinstance(info, tuple) else ()
+
+    def _info_dict_to_tuple(self, data: dict) -> tuple:
+        parsed_info = ()
+        for key in self.info_keys:
+            if key == 'ipo':
+                parsed_info += (datetime.strptime(data[key], '%Y-%m-%d'),)
+                continue
+
+            parsed_info += (data[key],)
+
+        return parsed_info
+
+    async def get_symbol_price(self, symbol, resolution):
+        data = await self._fetch_symbol_price(symbol, resolution)
+        if data and self._check_integrity_price_keys(list(data.keys())):
+            return self._parse_symbol_price(symbol, resolution, data)
+
+        return []
+
+    async def _fetch_symbol_price(self, symbol: str, resolution: str):
+        now = self._now()
+        data = await self._get(f"{self.url}{CONSTANTS['stock_price_endpoint'](symbol, resolution, now)}{API_TOKEN}")
+
+        return data
+
+    def _check_integrity_price_keys(self, keys: list):
         for d in keys:
             if d != 's' and d not in self.candle_keys:
                 return False
 
         return True
 
-    def _parse_symbol_data(self, data: dict) -> list:
+    def _parse_symbol_price(self, symbol: str, resolution: str, data: dict) -> list:
         """
         Parse information for executemany in asyncpg
         :param data: dict result from Finnhub get
         :return: list of candles in tuple format
         """
         return _handle_key_error(
-            self._dict_to_list_of_tuples(data)
+            self._price_dict_to_list_of_tuples(symbol, resolution, data)
         )
 
-    def _dict_to_list_of_tuples(self, data: dict) \
+    def _price_dict_to_list_of_tuples(self, symbol: str, resolution: str, data: dict) \
             -> List[tuple]:
         parsed_data = []
         for i in range(len(data[self.candle_keys[0]])):
             candle = ()
             for datum_type in self.candle_keys:
                 if datum_type == 't':
-                    candle += (datetime.fromtimestamp(data[datum_type][i]),)
+                    candle += (datetime.fromtimestamp(data[datum_type][i]), symbol, resolution,)
                     continue
                 candle += (data[datum_type][i],)
 

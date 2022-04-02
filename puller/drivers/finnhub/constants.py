@@ -2,10 +2,11 @@ CONSTANTS = {
     'base_url': 'https://finnhub.io/api/v1/',
     'indices': {'^NDX', '^DJI', '^SP500-50', '^SP500-25', '^SP500-30', '^GSPE', '^SP500-40', '^SP500-35', '^SP500-20', '^SP500-15', '^SP500-60', '^SP500-45'},
     'index_endpoint': lambda index: f'index/constituents?symbol={index}',
-    'stock_endpoint': lambda symbol, resolution, to_: f'indicator?symbol={symbol}&resolution={resolution}&from=0&to={to_}&indicator=macd',
+    'stock_price_endpoint': lambda symbol, resolution, to_: f'indicator?symbol={symbol}&resolution={resolution}&from=0&to={to_}&indicator=macd',
+    'stock_info_endpoint': lambda symbol: f'stock/profile2?symbol={symbol}',
     'datum_keys': {'c', 'h', 'l', 'macd', 'macdHist', 'macdSignal', 'o', 't', 'v'},
     'resolutions': ['D', 'W', 'M'],
-    'crypto': 'COINBASE:ETH-EUR',
+    'crypto': {'COINBASE:ETH-EUR', 'COINBASE:BTC-EUR'},
     'crypto_exchange': 'COINBASE',
     'crypto_endpoint': lambda symbol, resolution, to_: f'indicator?symbol={symbol}&resolution={resolution}&from=0&to={to_}&indicator=macd',
 }
