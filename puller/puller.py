@@ -10,7 +10,7 @@ class Puller:
     def __init__(self):
         log = Logger('puller')
         self._finnhub_driver = FinnhubDriver(log)
-        self._timescale_driver = TimescaleDriver(log)
+        self._timescale_driver = TimescaleDriver(log=log, host='timescale', port='5432')
         self._now = datetime.now()
         self._waiting_time = 60
         self._index_symbols = set()
@@ -60,7 +60,7 @@ class Puller:
 
     async def task_info_from_all_symbols(self):
         while True:
-            await self.get_and_persist_info_for_all_symbols(self.resolutions[2])
+            await self.get_and_persist_info_for_all_symbols()
             next_month = self._now + timedelta(weeks=4)
 
             await asyncio.sleep(next_month.timestamp())

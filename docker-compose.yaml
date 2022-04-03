@@ -13,6 +13,11 @@ services:
         networks:
             - superset
 
+    puller:
+        image: puller:puller
+        networks:
+            - superset
+
 networks:
     superset:
         external:

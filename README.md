@@ -16,7 +16,15 @@ API_TOKEN = '&token=YOUR-TOKEN-STRING'
 ```
 
 ## Deploy 📦
-You can run the `script.py` to just populate the database or use the `service.py` as a service for refresh the data every certain amount of time.
+Before deploy, you have the option to uncomment the line `# ENTRYPOINT python3 script.py` 
+and comment the line `ENTRYPOINT python3 service.py` in the Docker file, to run the puller just once.
+
+After that, run the following command inside `puller/`:
+```bash
+docker build . -t puller:puller
+```
+
+And then, run the docker-compose file after run the superset docker project, or change the network configuration in the docker-compose file.
 
 ## Limitations 
 This program is thought for the free version of Finnhub API, if you desire to use it with a premium account you should change the line 17 from `self._semaphore = asyncio.Semaphore(60)` to `self._semaphore = asyncio.Semaphore(1000)` in `puller/puller.py` 
