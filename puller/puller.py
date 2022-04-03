@@ -93,7 +93,6 @@ class Puller:
         data = await self._finnhub_driver.get_symbol_info(symbol)
         await asyncio.sleep(self._waiting_time)
         self._semaphore.release()
-        # print(data)
 
         return data
 
