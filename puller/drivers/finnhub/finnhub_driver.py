@@ -87,7 +87,7 @@ class FinnhubDriver:
         return True
 
     def _parse_symbol_info(self, data: dict) -> tuple:
-        info = _handle_key_error(self._info_dict_to_tuple(data))
+        info = _handle_key_error(self._info_dict_to_tuple, data)
 
         # To avoid return a list which is necessary for the price method
         return info if isinstance(info, tuple) else ()
@@ -130,7 +130,7 @@ class FinnhubDriver:
         :return: list of candles in tuple format
         """
         return _handle_key_error(
-            self._price_dict_to_list_of_tuples(symbol, resolution, data)
+            self._price_dict_to_list_of_tuples, symbol, resolution, data
         )
 
     def _price_dict_to_list_of_tuples(self, symbol: str, resolution: str, data: dict) \
@@ -152,8 +152,8 @@ class FinnhubDriver:
         await self.https.close()
 
 
-def _handle_key_error(function) -> list:
+def _handle_key_error(function, *args) -> list:
     try:
-        return function
+        return function(*args)
     except KeyError:
         return []
