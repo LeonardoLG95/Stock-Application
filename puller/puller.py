@@ -47,7 +47,7 @@ class Puller:
             self._add_symbols_for_index(index_symbol)
             for index_symbol in self._index_symbols
         ])
-        self.stock_symbols.union(self._finnhub_driver.get_crypto_symbols())
+        self.stock_symbols = self.stock_symbols.union(self._finnhub_driver.get_crypto_symbols())
 
     async def _add_symbols_for_index(self, index_symbol: str):
         await self._semaphore.acquire()
@@ -76,8 +76,8 @@ class Puller:
                     continue
 
             stock_information = await asyncio.gather(*[self._get_info(symbol)
-                                                      for symbol in symbol_chunk
-                                                      ])
+                                                       for symbol in symbol_chunk
+                                                       ])
 
             for info in stock_information:
                 asyncio.create_task(

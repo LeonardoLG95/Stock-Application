@@ -3,6 +3,7 @@ version: "3.9"
 services:
     timescale:
         image: timescale/timescaledb:latest-pg12
+        restart: always
         volumes:
             - ./timescale:/var/lib/postgresql/data
         ports:
@@ -15,6 +16,8 @@ services:
 
     puller:
         image: puller:puller
+        stop_grace_period: 60s
+        restart: always
         networks:
             - superset
 

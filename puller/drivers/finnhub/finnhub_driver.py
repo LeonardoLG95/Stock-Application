@@ -152,7 +152,7 @@ class FinnhubDriver:
         await self.https.close()
 
 
-def _handle_key_error(function):
+def _handle_key_error(function) -> list:
     try:
         return function
     except KeyError:
