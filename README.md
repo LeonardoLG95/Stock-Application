@@ -30,6 +30,6 @@ this project is compatible with the docker superset project.
 
 Here is an example representing the data this project can pull:
 
-![](../../../Pictures/Screenshot from 2022-04-03 13-48-17.png)
+![superset1](./superset1.png)
 
-![](../../../Pictures/Screenshot from 2022-04-03 13-51-37.png)
+![superset2](./superset2.png)
