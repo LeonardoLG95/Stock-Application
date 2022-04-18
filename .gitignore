@@ -4,7 +4,5 @@ timescale/
 venv/
 twitter/
 frontend/
-alembic_files/
 *.egg-info/
-stock_utils/
 test.py
