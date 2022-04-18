@@ -24,14 +24,6 @@ class Puller:
         await self._get_symbols()
         await self._timescale_driver.persist_symbols(self._stock_symbols)
 
-    # async def _create_task(self, function: asyncio.coroutines, **kwargs):
-    #     while True:
-    #         await function()
-    #         now = datetime.now()
-    #         next_month = now + timedelta(**kwargs)
-    #
-    #         await asyncio.sleep(next_month.timestamp())
-
     async def rehydrate_symbols(self):
         while True:
             await self._get_symbols()

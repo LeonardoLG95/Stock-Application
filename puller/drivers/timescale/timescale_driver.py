@@ -57,8 +57,7 @@ class TimescaleDriver:
         async with session() as session:
             select_result = await session.execute(
                 select(StockInfo)
-                    .where(StockInfo.symbol.in_([info.symbol])
-                           ))
+                    .where(StockInfo.symbol == info.symbol))
             try:
                 select_result = select_result.scalars().one()
                 if int(select_result.market_capitalization) != int(info.market_capitalization) \
@@ -80,9 +79,11 @@ class TimescaleDriver:
 
         engine, session = await self._create_session()
         async with session() as session:
-            await session.execute(
+            update_result = await session.execute(
                 update(StockInfo).where(StockInfo.symbol == info.symbol).values(dict(info))
             )
+            if update_result.rowcount == 0:
+                session.add(StockInfo(**dict(info)))
 
             await session.commit()
 
@@ -112,11 +113,11 @@ class TimescaleDriver:
         engine, session = await self._create_session()
         async with session() as session:
             last_candle = await session.execute(
-                select(LastCandle)
-                    .where(
-                    LastCandle.symbol.in_([symbol]),
-                    LastCandle.resolution.in_([resolution])
-                ))
+                select(StockPrice)
+                    .where(StockPrice.symbol == symbol)
+                    .where(StockPrice.resolution == resolution)
+                    .order_by(StockPrice.time.desc()).limit(1)
+                )
 
             try:
                 last_candle = last_candle.scalars().one()
@@ -161,13 +162,16 @@ class TimescaleDriver:
     async def _update_stock_price(self, price_to_update: StockPrice):
         engine, session = await self._create_session()
         async with session() as session:
-            await session.execute(
+            update_result = await session.execute(
                 update(StockPrice)
                     .where(StockPrice.symbol == price_to_update.symbol)
                     .where(StockPrice.resolution == price_to_update.resolution)
                     .where(StockPrice.time == price_to_update.time)
                     .values(dict(price_to_update))
             )
+
+            if update_result.rowcount == 0:
+                session.add(StockPrice(**dict(price_to_update)))
 
             await session.commit()
 
@@ -176,12 +180,15 @@ class TimescaleDriver:
     async def _update_last_candle(self, last_candle: LastCandle):
         engine, session = await self._create_session()
         async with session() as session:
-            await session.execute(
+            update_result = await session.execute(
                 update(LastCandle)
                     .where(LastCandle.symbol == last_candle.symbol)
                     .where(LastCandle.resolution == last_candle.resolution)
                     .values(dict(last_candle))
             )
+
+            if update_result.rowcount == 0:
+                session.add(LastCandle(**dict(last_candle)))
 
             await session.commit()
 
