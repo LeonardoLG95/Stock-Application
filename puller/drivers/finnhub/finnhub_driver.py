@@ -1,10 +1,12 @@
 import json
 import time
 from datetime import datetime
-from urllib.parse import urlparse
 from typing import List
+from urllib.parse import urlparse
+
 import aiohttp
 
+from stock_utils.models.classes import StockInfo, StockPrice
 from .constants import CONSTANTS
 from .finnhub_token import API_TOKEN
 
@@ -16,7 +18,8 @@ class FinnhubDriver:
         self.log = log
         self.number_petitions = 0
         self.candle_keys = ['t', 'c', 'h', 'l', 'macd', 'macdHist', 'macdSignal', 'o', 'v']
-        self.info_keys = ['name', 'country', 'currency', 'exchange', 'ipo', 'marketCapitalization', 'shareOutstanding', 'weburl', 'finnhubIndustry']
+        self.info_keys = ['name', 'country', 'currency', 'exchange', 'ipo', 'marketCapitalization', 'shareOutstanding',
+                          'weburl', 'finnhubIndustry']
         self.start_time = time.perf_counter()
 
     @staticmethod
@@ -68,11 +71,11 @@ class FinnhubDriver:
         return {symbol for symbol in response['constituents']}
 
     async def get_symbol_info(self, symbol: str):
-        data = await self._fetch_symbol_info(symbol)
-        if data and self._check_integrity_info_keys(list(data.keys())):
-            info = (symbol, )
-            return info + self._parse_symbol_info(data)
-        return ()
+        info = await self._fetch_symbol_info(symbol)
+        if info and self._check_integrity_info_keys(list(info.keys())):
+            return self._parse_symbol_info(symbol, info)
+
+        return None
 
     async def _fetch_symbol_info(self, symbol: str):
         data = await self._get(f"{self.url}{CONSTANTS['stock_info_endpoint'](symbol)}{API_TOKEN}")
@@ -86,29 +89,23 @@ class FinnhubDriver:
 
         return True
 
-    def _parse_symbol_info(self, data: dict) -> tuple:
-        info = _handle_key_error(self._info_dict_to_tuple, data)
-
-        # To avoid return a list which is necessary for the price method
-        return info if isinstance(info, tuple) else ()
-
-    def _info_dict_to_tuple(self, data: dict) -> tuple:
-        parsed_info = ()
-        for key in self.info_keys:
-            if key == 'ipo':
-                parsed_info += (datetime.strptime(data[key], '%Y-%m-%d'),)
-                continue
-
-            parsed_info += (data[key],)
-
-        return parsed_info
+    @staticmethod
+    def _parse_symbol_info(symbol: str, data: dict) -> StockInfo:
+        try:
+            return StockInfo(symbol=symbol, name=data['name'], country=data['country'], currency=data['currency'],
+                             exchange=data['exchange'], ipo=datetime.strptime(data['ipo'], '%Y-%m-%d'),
+                             market_capitalization=data['marketCapitalization'],
+                             share_outstanding=data['shareOutstanding'],
+                             website=data['weburl'], industry=data['finnhubIndustry'])
+        except (KeyError, TypeError):
+            return None
 
     async def get_symbol_price(self, symbol, resolution):
         data = await self._fetch_symbol_price(symbol, resolution)
         if data and self._check_integrity_price_keys(list(data.keys())):
             return self._parse_symbol_price(symbol, resolution, data)
 
-        return []
+        return None
 
     async def _fetch_symbol_price(self, symbol: str, resolution: str):
         now = self._now()
@@ -117,43 +114,37 @@ class FinnhubDriver:
         return data
 
     def _check_integrity_price_keys(self, keys: list):
-        for d in keys:
-            if d != 's' and d not in self.candle_keys:
+        for d in self.candle_keys:
+            if d != 's' and d not in keys:
                 return False
 
         return True
 
-    def _parse_symbol_price(self, symbol: str, resolution: str, data: dict) -> list:
-        """
-        Parse information for executemany in asyncpg
-        :param data: dict result from Finnhub get
-        :return: list of candles in tuple format
-        """
-        return _handle_key_error(
-            self._price_dict_to_list_of_tuples, symbol, resolution, data
-        )
+    def _parse_symbol_price(self, symbol: str, resolution: str, data: dict) \
+            -> List[StockPrice]:
+        try:
+            parsed_prices = []
+            for i in range(len(data[self.candle_keys[0]])):
+                parsed_prices.append(
+                    StockPrice(
+                        time=datetime.fromtimestamp(data['t'][i]),
+                        symbol=symbol,
+                        resolution=resolution,
+                        close=data['c'][i],
+                        high=data['h'][i],
+                        low=data['l'][i],
+                        macd=data['macd'][i],
+                        macd_hist=data['macdHist'][i],
+                        macd_signal=data['macdSignal'][i],
+                        open=data['o'][i],
+                        volume=data['v'][i],
+                    )
+                )
 
-    def _price_dict_to_list_of_tuples(self, symbol: str, resolution: str, data: dict) \
-            -> List[tuple]:
-        parsed_data = []
-        for i in range(len(data[self.candle_keys[0]])):
-            candle = ()
-            for datum_type in self.candle_keys:
-                if datum_type == 't':
-                    candle += (datetime.fromtimestamp(data[datum_type][i]), symbol, resolution,)
-                    continue
-                candle += (data[datum_type][i],)
+            return parsed_prices
 
-            parsed_data.append(candle)
-
-        return parsed_data
+        except KeyError:
+            return None
 
     async def close(self) -> None:
         await self.https.close()
-
-
-def _handle_key_error(function, *args) -> list:
-    try:
-        return function(*args)
-    except KeyError:
-        return []
