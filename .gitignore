@@ -1,8 +1,9 @@
 .idea/
 trader/
-timescale/
+./timescale
 venv/
-twitter/
+twitter_puller/
 frontend/
 *.egg-info/
+to_dict.py
 test.py

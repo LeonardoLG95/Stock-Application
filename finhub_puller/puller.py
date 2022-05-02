@@ -8,7 +8,7 @@ from stock_utils.logger import Logger
 
 class Puller:
     def __init__(self):
-        log = Logger('puller')
+        log = Logger('finhub_puller')
         self._finnhub_driver = FinnhubDriver(log)
         self._timescale_driver = TimescaleDriver(log=log, host='localhost', port='5500')
         self._waiting_time = 60
@@ -64,14 +64,9 @@ class Puller:
                 if i + 1 != len(self._stock_symbols):
                     continue
 
-            stock_information = await asyncio.gather(*[self._get_info(symbol)
-                                                       for symbol in symbol_chunk
-                                                       ])
-
-            for info in stock_information:
-                asyncio.create_task(
-                    self._timescale_driver.persist_info(info)
-                )
+            await asyncio.gather(*[self._get_info(symbol)
+                                   for symbol in symbol_chunk
+                                   ])
 
             symbol_chunk = []
             petitions = 0
@@ -80,6 +75,10 @@ class Puller:
         await self._semaphore.acquire()
 
         info = await self._finnhub_driver.get_symbol_info(symbol)
+        if info:
+            asyncio.create_task(
+                self._timescale_driver.persist_info(info)
+            )
         await asyncio.sleep(self._waiting_time)
         self._semaphore.release()
 
@@ -119,14 +118,9 @@ class Puller:
                 if i + 1 != len(self._stock_symbols):
                     continue
 
-            stock_historical = await asyncio.gather(*[self._get_price(symbol, resolution)
-                                                      for symbol in symbol_chunk
-                                                      ])
-
-            for historical in stock_historical:
-                asyncio.create_task(
-                    self._timescale_driver.persist_historical(historical)
-                )
+            await asyncio.gather(*[self._get_price(symbol, resolution)
+                                   for symbol in symbol_chunk
+                                   ])
 
             symbol_chunk = []
             petitions = 0
@@ -135,6 +129,10 @@ class Puller:
         await self._semaphore.acquire()
 
         price = await self._finnhub_driver.get_symbol_price(symbol, resolution)
+        if price:
+            asyncio.create_task(
+                self._timescale_driver.persist_historical(price)
+            )
         await asyncio.sleep(self._waiting_time)
         self._semaphore.release()
 

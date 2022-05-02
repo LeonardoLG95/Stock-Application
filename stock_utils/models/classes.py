@@ -1,5 +1,4 @@
 from sqlalchemy import Column, String, CHAR, Float, BigInteger, DateTime, ForeignKey, event, DDL
-from stock_utils.models.to_dict import ToDict
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -11,7 +10,7 @@ class Symbol(Base):
     symbol = Column(String, primary_key=True)
 
 
-class StockInfo(Base, ToDict):
+class StockInfo(Base):
     __tablename__ = 'stock_info'
 
     symbol = Column(String, ForeignKey("symbol.symbol"), primary_key=True)
@@ -24,11 +23,9 @@ class StockInfo(Base, ToDict):
     share_outstanding = Column(Float, nullable=False)
     website = Column(String, nullable=False)
     industry = Column(String, nullable=False)
-    # last_candle = relationship("LastCandle")
-    # stock_price = relationship("StockPrice")
 
 
-class LastCandle(Base, ToDict):
+class LastCandle(Base):
     __tablename__ = 'last_candle'
 
     time = Column(DateTime(timezone=False), primary_key=True)
@@ -44,7 +41,7 @@ class LastCandle(Base, ToDict):
     volume = Column(BigInteger, nullable=False)
 
 
-class StockPrice(Base, ToDict):
+class StockPrice(Base):
     __tablename__ = 'stock_price'
 
     time = Column(DateTime(timezone=False), nullable=False)

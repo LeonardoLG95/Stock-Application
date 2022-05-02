@@ -1,12 +1,11 @@
 import json
 import time
 from datetime import datetime
-from typing import List
+from typing import Tuple
 from urllib.parse import urlparse
 
 import aiohttp
 
-from stock_utils.models.classes import StockInfo, StockPrice
 from .constants import CONSTANTS
 from .finnhub_token import API_TOKEN
 
@@ -70,12 +69,10 @@ class FinnhubDriver:
 
         return {symbol for symbol in response['constituents']}
 
-    async def get_symbol_info(self, symbol: str):
+    async def get_symbol_info(self, symbol: str) -> dict:
         info = await self._fetch_symbol_info(symbol)
         if info and self._check_integrity_info_keys(list(info.keys())):
             return self._parse_symbol_info(symbol, info)
-
-        return None
 
     async def _fetch_symbol_info(self, symbol: str):
         data = await self._get(f"{self.url}{CONSTANTS['stock_info_endpoint'](symbol)}{API_TOKEN}")
@@ -90,22 +87,28 @@ class FinnhubDriver:
         return True
 
     @staticmethod
-    def _parse_symbol_info(symbol: str, data: dict) -> StockInfo:
+    def _parse_symbol_info(symbol: str, data: dict) -> dict:
         try:
-            return StockInfo(symbol=symbol, name=data['name'], country=data['country'], currency=data['currency'],
-                             exchange=data['exchange'], ipo=datetime.strptime(data['ipo'], '%Y-%m-%d'),
-                             market_capitalization=data['marketCapitalization'],
-                             share_outstanding=data['shareOutstanding'],
-                             website=data['weburl'], industry=data['finnhubIndustry'])
-        except (KeyError, TypeError):
-            return None
+            return {
+                'symbol': symbol,
+                'name': data['name'],
+                'country': data['country'],
+                'currency': data['currency'],
+                'exchange': data['exchange'],
+                'ipo': datetime.strptime(data['ipo'], '%Y-%m-%d'),
+                'market_capitalization': data['marketCapitalization'],
+                'share_outstanding': data['shareOutstanding'],
+                'website': data['weburl'],
+                'industry': data['finnhubIndustry']
+            }
 
-    async def get_symbol_price(self, symbol, resolution):
+        except (KeyError, TypeError):
+            ...
+
+    async def get_symbol_price(self, symbol, resolution) -> Tuple[dict]:
         data = await self._fetch_symbol_price(symbol, resolution)
         if data and self._check_integrity_price_keys(list(data.keys())):
             return self._parse_symbol_price(symbol, resolution, data)
-
-        return None
 
     async def _fetch_symbol_price(self, symbol: str, resolution: str):
         now = self._now()
@@ -121,30 +124,28 @@ class FinnhubDriver:
         return True
 
     def _parse_symbol_price(self, symbol: str, resolution: str, data: dict) \
-            -> List[StockPrice]:
+            -> Tuple[dict]:
         try:
-            parsed_prices = []
+            parsed_prices = ()
             for i in range(len(data[self.candle_keys[0]])):
-                parsed_prices.append(
-                    StockPrice(
-                        time=datetime.fromtimestamp(data['t'][i]),
-                        symbol=symbol,
-                        resolution=resolution,
-                        close=data['c'][i],
-                        high=data['h'][i],
-                        low=data['l'][i],
-                        macd=data['macd'][i],
-                        macd_hist=data['macdHist'][i],
-                        macd_signal=data['macdSignal'][i],
-                        open=data['o'][i],
-                        volume=data['v'][i],
-                    )
-                )
+                parsed_prices += ({
+                                      'time': datetime.fromtimestamp(data['t'][i]),
+                                      'symbol': symbol,
+                                      'resolution': resolution,
+                                      'close': data['c'][i],
+                                      'high': data['h'][i],
+                                      'low': data['l'][i],
+                                      'macd': data['macd'][i],
+                                      'macd_hist': data['macdHist'][i],
+                                      'macd_signal': data['macdSignal'][i],
+                                      'open': data['o'][i],
+                                      'volume': data['v'][i]
+                                  },)
 
             return parsed_prices
 
         except KeyError:
-            return None
+            ...
 
     async def close(self) -> None:
         await self.https.close()

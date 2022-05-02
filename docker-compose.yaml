@@ -14,8 +14,8 @@ services:
         networks:
             - superset
 
-    puller:
-        image: puller:puller
+    finhub-puller:
+        image: finhub-puller:finhub-puller
         stop_grace_period: 60s
         restart: always
         networks:

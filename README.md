@@ -21,7 +21,7 @@ and comment the line `ENTRYPOINT python3 service.py` in the Docker file, to run 
 
 After that, run the following command inside `puller/`:
 ```bash
-docker build . -t puller:puller
+docker build . -t finhub_puller:finhub_puller
 ```
 
 And then, run the docker-compose file after run the superset docker project, or change the network configuration in the docker-compose file.
