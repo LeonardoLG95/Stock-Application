@@ -7,3 +7,5 @@ frontend/
 *.egg-info/
 to_dict.py
 test.py
+__pycache__/
+.gitignore
