@@ -7,7 +7,7 @@ from alembic import context
 import sys
 
 sys.path = ['', '..'] + sys.path[1:]
-from stock_utils.models.classes import Base
+from utils.models import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
