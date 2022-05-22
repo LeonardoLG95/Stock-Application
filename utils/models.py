@@ -124,8 +124,10 @@ class BasicFinancials(Base):
 class FinancialReport(Base):
     __tablename__ = 'financial_report'
 
-    access_number = Column(String, nullable=False, primary_key=True)
+    id = Column(String, nullable=False, primary_key=True)
+    access_number = Column(String, nullable=False)
     symbol = Column(String, ForeignKey("symbol.symbol"), nullable=False)
+    frequency = Column(String, nullable=False)
     cik = Column(String, nullable=False)
     year = Column(Integer, nullable=False)
     quarter = Column(Integer, nullable=False)
@@ -139,12 +141,12 @@ class FinancialReport(Base):
 class ReportConcept(Base):
     __tablename__ = 'report_concept'
 
-    access_number = Column(String, ForeignKey("financial_report.access_number"), nullable=False, primary_key=True)
+    id = Column(BigInteger, nullable=False, autoincrement=True, primary_key=True)
+    financial_report = Column(String, ForeignKey("financial_report.id"), nullable=False)
     label = Column(String, nullable=False)
     concept = Column(String, nullable=False)
     unit = Column(String, nullable=False)
     value = Column(Float, nullable=False)
-
 
 
 event.listen(
