@@ -140,11 +140,14 @@ class TimescaleDriver:
         price_to_update = None
         remaining_historical = ()
 
+        same_date = False
         for price in historical:
             if price['time'].date() < last_candle_time.date():
                 continue
             elif price['time'].date() == last_candle_time.date():
-                price_to_update = price
+                if not same_date:
+                    price_to_update = price
+                    same_date = True
 
             else:
                 remaining_historical += (price,)

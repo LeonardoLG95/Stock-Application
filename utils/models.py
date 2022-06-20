@@ -19,7 +19,8 @@ class Symbol(Base):
 class StockInfo(Base):
     __tablename__ = 'stock_info'
 
-    symbol = Column(String, ForeignKey("symbol.symbol"), nullable=False, primary_key=True)
+    id = Column(BigInteger, nullable=False, autoincrement=True, primary_key=True)
+    symbol = Column(String, ForeignKey("symbol.symbol"), nullable=False)
     name = Column(String, nullable=False)
     country = Column(String, nullable=False)
     currency = Column(String, nullable=False)
@@ -34,8 +35,9 @@ class StockInfo(Base):
 class LastCandle(Base):
     __tablename__ = 'last_candle'
 
-    time = Column(DateTime(timezone=False), nullable=False, primary_key=True)
-    symbol = Column(String, ForeignKey("symbol.symbol"), nullable=False, primary_key=True)
+    id = Column(BigInteger, nullable=False, autoincrement=True, primary_key=True)
+    time = Column(DateTime(timezone=False), nullable=False)
+    symbol = Column(String, ForeignKey("symbol.symbol"), nullable=False)
     resolution = Column(CHAR, nullable=False)
     close = Column(Float, nullable=False)
     high = Column(Float, nullable=False)
@@ -50,8 +52,9 @@ class LastCandle(Base):
 class StockPrice(Base):
     __tablename__ = 'stock_price'
 
+    id = Column(BigInteger, nullable=False, autoincrement=True, primary_key=True)
     time = Column(DateTime(timezone=False), nullable=False)
-    symbol = Column(String, ForeignKey("symbol.symbol"), nullable=False, primary_key=True)
+    symbol = Column(String, ForeignKey("symbol.symbol"), nullable=False)
     resolution = Column(CHAR, nullable=False)
     close = Column(Float, nullable=False)
     high = Column(Float, nullable=False)

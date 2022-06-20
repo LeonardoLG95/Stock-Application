@@ -231,7 +231,7 @@ class FinnhubDriver:
         for column, value in report.items():
             if column == 'report':
                 continue
-            if not value:
+            if value is None:
                 return
 
             if column in ('startDate', 'endDate', 'filedDate', 'acceptedDate'):
