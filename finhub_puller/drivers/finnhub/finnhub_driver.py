@@ -7,8 +7,7 @@ from urllib.parse import urlparse
 
 import aiohttp
 from json.decoder import JSONDecodeError
-from .constants import END_POINTS, EXPECTED_RESPONSE_KEYS
-from .finnhub_token import API_TOKEN
+from finhub_puller.drivers.finnhub.constants import END_POINTS, EXPECTED_RESPONSE_KEYS, API_TOKEN
 
 
 class FinnhubDriver:

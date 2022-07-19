@@ -7,7 +7,7 @@ from alembic import context
 import sys
 
 sys.path = ['', '..'] + sys.path[1:]
-from utils.models import Base
+from finhub_puller.alembic_files.alembic.models import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -152,6 +152,16 @@ class ReportConcept(Base):
     value = Column(Float, nullable=False)
 
 
+class ClosePricePredictions(Base):
+    __tablename__ = 'close_price_prediction'
+
+    id = Column(BigInteger, nullable=False, autoincrement=True, primary_key=True)
+    time = Column(DateTime(timezone=False), nullable=False)
+    symbol = Column(String, ForeignKey("symbol.symbol"), nullable=False)
+    resolution = Column(CHAR, nullable=False)
+    close = Column(Float, nullable=False)
+
+
 event.listen(
     StockPrice.__table__,
     'after_create',
@@ -162,4 +172,10 @@ event.listen(
     BasicFinancials.__table__,
     'after_create',
     DDL(f"SELECT create_hypertable('{BasicFinancials.__tablename__}', 'period');"),
+)
+
+event.listen(
+    ClosePricePredictions.__table__,
+    'after_create',
+    DDL(f"SELECT create_hypertable('{ClosePricePredictions.__tablename__}', 'time');"),
 )

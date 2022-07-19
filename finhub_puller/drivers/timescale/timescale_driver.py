@@ -8,7 +8,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.expression import update
 
-from utils.models import StockInfo, Symbol, StockPrice, LastCandle, BasicFinancials, FinancialReport, ReportConcept
+from finhub_puller.alembic_files.alembic.models import StockInfo, Symbol, StockPrice, LastCandle, BasicFinancials, FinancialReport, ReportConcept
 
 
 class TimescaleDriver:

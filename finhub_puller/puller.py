@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 from drivers.finnhub.finnhub_driver import FinnhubDriver
 from drivers.timescale.timescale_driver import TimescaleDriver
-from utils.logger import Logger
+from finhub_puller.utils.logger import Logger
 
 
 class Puller:

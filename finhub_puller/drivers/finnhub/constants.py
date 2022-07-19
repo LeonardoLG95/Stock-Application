@@ -1,3 +1,7 @@
+from dotenv import dotenv_values
+
+env_variables = dotenv_values(".env")
+
 END_POINTS = {
     'base_url': 'https://finnhub.io/api/v1/',
     'indices': {'^NDX', '^DJI', '^SP500-50', '^SP500-25', '^SP500-30', '^GSPE', '^SP500-40', '^SP500-35', '^SP500-20',
@@ -38,6 +42,8 @@ EXPECTED_RESPONSE_KEYS = {
                     'acceptedDate',
                     'report')
 }
+
+API_TOKEN = f"&token={env_variables.get('FINHUB_API_TOKEN')}"
 
 '''
 ^SP500-50	S&P Communication Services Select Sector
