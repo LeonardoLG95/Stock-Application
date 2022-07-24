@@ -1,6 +1,4 @@
-from dotenv import dotenv_values
-
-env_variables = dotenv_values(".env")
+from finhub_puller.env import FINHUB_TOKEN
 
 END_POINTS = {
     'base_url': 'https://finnhub.io/api/v1/',
@@ -8,7 +6,7 @@ END_POINTS = {
                 '^SP500-15', '^SP500-60', '^SP500-45'},
     'index_endpoint': lambda index: f'index/constituents?symbol={index}',
     'stock_price_endpoint': lambda symbol, resolution, to_:
-        f'indicator?symbol={symbol}&resolution={resolution}&from=0&to={to_}&indicator=macd',
+    f'indicator?symbol={symbol}&resolution={resolution}&from=0&to={to_}&indicator=macd',
     'stock_info_endpoint': lambda symbol: f'stock/profile2?symbol={symbol}',
     'stock_basic_financials': lambda symbol: f'stock/metric?symbol={symbol}&metric=all',
     'stock_financial_reports': lambda symbol, frequency: f'stock/financials-reported?symbol={symbol}&freq={frequency}',
@@ -43,7 +41,7 @@ EXPECTED_RESPONSE_KEYS = {
                     'report')
 }
 
-API_TOKEN = f"&token={env_variables.get('FINHUB_API_TOKEN')}"
+API_TOKEN = f"&token={FINHUB_TOKEN}"
 
 '''
 ^SP500-50	S&P Communication Services Select Sector

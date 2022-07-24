@@ -1,10 +1,9 @@
+import sys
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-from alembic import context
-
-import sys
 
 sys.path = ['', '..'] + sys.path[1:]
 from finhub_puller.alembic_files.alembic.models import Base

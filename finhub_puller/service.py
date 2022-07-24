@@ -1,6 +1,9 @@
 import asyncio
 
+from migration_handler import alembic_migration
 from puller import Puller
+
+alembic_migration()
 
 
 async def start_puller():

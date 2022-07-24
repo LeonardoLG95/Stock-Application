@@ -1,7 +1,10 @@
 FROM python:3.9-buster
 
-COPY . .
+COPY . /finhub_puller
+WORKDIR /finhub_puller
+
+ENV PYTHONPATH="/"
+
 RUN pip install -r requirements.txt
 
-# ENTRYPOINT python3 service.py
-ENTRYPOINT python3 script.py
+ENTRYPOINT python3 service.py
