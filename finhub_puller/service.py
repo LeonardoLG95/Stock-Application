@@ -1,12 +1,11 @@
 import asyncio
 
-from migration_handler import alembic_migration
+from migration_handler import migration
 from puller import Puller
-
-alembic_migration()
 
 
 async def start_puller():
+    await migration()
     puller = Puller()
     await puller.start()
     puller.pull_tasks()

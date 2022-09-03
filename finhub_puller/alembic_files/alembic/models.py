@@ -66,37 +66,6 @@ class StockPrice(Base):
     volume = Column(BigInteger, nullable=False)
 
 
-class Buys(Base):
-    __tablename__ = 'buys'
-
-    time = Column(DateTime(timezone=False), nullable=False, primary_key=True)
-    symbol = Column(String, ForeignKey("symbol.symbol"), nullable=False, primary_key=True)
-    eur_price = Column(Float, nullable=False)
-    eur_commissions = Column(Float, nullable=False)
-    us_price = Column(Float, nullable=False)
-    units = Column(Integer, nullable=False, primary_key=True)
-
-
-class Sells(Base):
-    __tablename__ = 'sells'
-
-    time = Column(DateTime(timezone=False), nullable=False, primary_key=True)
-    symbol = Column(String, ForeignKey("symbol.symbol"), nullable=False, primary_key=True)
-    eur_price = Column(Float, nullable=False)
-    eur_commissions = Column(Float, nullable=False)
-    us_price = Column(Float, nullable=False)
-    units = Column(Integer, nullable=False, primary_key=True)
-
-
-class Results(Base):
-    __tablename__ = 'results'
-
-    id = Column(Integer, default=random_id, primary_key=True)
-    symbol = Column(String, ForeignKey("symbol.symbol"), nullable=False)
-    eur_result = Column(Float, nullable=False)
-    percentage = Column(Float, nullable=False)
-
-
 class BasicFinancials(Base):
     __tablename__ = 'basic_financials'
 

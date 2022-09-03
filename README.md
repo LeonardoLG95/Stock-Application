@@ -2,6 +2,8 @@
 An application to pull information of the stocks of the companies 
 that are part of the SP500, Nasdaq100, DOW, ETH and BTC.
 
+# Wallet administrator
+An application to register your operations and see the evolution of your wallet.
 
 ### Pre-requisites 📋
 To use this application you need to have Docker 
