@@ -5,6 +5,6 @@ WORKDIR /finhub_puller
 
 ENV PYTHONPATH="/"
 
-RUN pip install -r requirements.txt
+RUN pip install -r puller_requirements.txt
 
 ENTRYPOINT python3 service.py

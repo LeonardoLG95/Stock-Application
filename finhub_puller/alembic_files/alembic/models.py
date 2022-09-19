@@ -1,4 +1,15 @@
-from sqlalchemy import Column, String, CHAR, Float, BigInteger, DateTime, ForeignKey, event, DDL, Integer
+from sqlalchemy import (
+    Column,
+    String,
+    CHAR,
+    Float,
+    BigInteger,
+    DateTime,
+    ForeignKey,
+    event,
+    DDL,
+    Integer,
+)
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -6,18 +17,19 @@ Base = declarative_base()
 
 def random_id():
     import uuid
+
     id = uuid.uuid4()
     return id.hex
 
 
 class Symbol(Base):
-    __tablename__ = 'symbol'
+    __tablename__ = "symbol"
 
     symbol = Column(String, primary_key=True)
 
 
 class StockInfo(Base):
-    __tablename__ = 'stock_info'
+    __tablename__ = "stock_info"
 
     id = Column(BigInteger, nullable=False, autoincrement=True, primary_key=True)
     symbol = Column(String, ForeignKey("symbol.symbol"), nullable=False)
@@ -33,7 +45,7 @@ class StockInfo(Base):
 
 
 class LastCandle(Base):
-    __tablename__ = 'last_candle'
+    __tablename__ = "last_candle"
 
     id = Column(BigInteger, nullable=False, autoincrement=True, primary_key=True)
     time = Column(DateTime(timezone=False), nullable=False)
@@ -50,7 +62,7 @@ class LastCandle(Base):
 
 
 class StockPrice(Base):
-    __tablename__ = 'stock_price'
+    __tablename__ = "stock_price"
 
     id = Column(BigInteger, nullable=False, autoincrement=True, primary_key=True)
     time = Column(DateTime(timezone=False), nullable=False)
@@ -67,10 +79,12 @@ class StockPrice(Base):
 
 
 class BasicFinancials(Base):
-    __tablename__ = 'basic_financials'
+    __tablename__ = "basic_financials"
 
     period = Column(DateTime(timezone=False), nullable=False, primary_key=True)
-    symbol = Column(String, ForeignKey("symbol.symbol"), nullable=False, primary_key=True)
+    symbol = Column(
+        String, ForeignKey("symbol.symbol"), nullable=False, primary_key=True
+    )
     time_window = Column(String, nullable=False, primary_key=True)
     cash_ratio = Column(Float)
     current_ratio = Column(Float)
@@ -94,7 +108,7 @@ class BasicFinancials(Base):
 
 
 class FinancialReport(Base):
-    __tablename__ = 'financial_report'
+    __tablename__ = "financial_report"
 
     id = Column(String, nullable=False, primary_key=True)
     access_number = Column(String, nullable=False)
@@ -111,7 +125,7 @@ class FinancialReport(Base):
 
 
 class ReportConcept(Base):
-    __tablename__ = 'report_concept'
+    __tablename__ = "report_concept"
 
     id = Column(BigInteger, nullable=False, autoincrement=True, primary_key=True)
     financial_report = Column(String, ForeignKey("financial_report.id"), nullable=False)
@@ -121,30 +135,14 @@ class ReportConcept(Base):
     value = Column(Float, nullable=False)
 
 
-class ClosePricePredictions(Base):
-    __tablename__ = 'close_price_prediction'
-
-    id = Column(BigInteger, nullable=False, autoincrement=True, primary_key=True)
-    time = Column(DateTime(timezone=False), nullable=False)
-    symbol = Column(String, ForeignKey("symbol.symbol"), nullable=False)
-    resolution = Column(CHAR, nullable=False)
-    close = Column(Float, nullable=False)
-
-
 event.listen(
     StockPrice.__table__,
-    'after_create',
+    "after_create",
     DDL(f"SELECT create_hypertable('{StockPrice.__tablename__}', 'time');"),
 )
 
 event.listen(
     BasicFinancials.__table__,
-    'after_create',
+    "after_create",
     DDL(f"SELECT create_hypertable('{BasicFinancials.__tablename__}', 'period');"),
-)
-
-event.listen(
-    ClosePricePredictions.__table__,
-    'after_create',
-    DDL(f"SELECT create_hypertable('{ClosePricePredictions.__tablename__}', 'time');"),
 )

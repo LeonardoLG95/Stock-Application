@@ -2,28 +2,23 @@ import asyncio
 from typing import Set, List, Tuple
 
 from sqlalchemy.exc import NoResultFound, IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.ext.asyncio import create_async_engine
+
 from sqlalchemy.future import select
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.expression import update
 
-from finhub_puller.alembic_files.alembic.models import StockInfo, Symbol, StockPrice, LastCandle, BasicFinancials, FinancialReport, ReportConcept
+from finhub_puller.alembic_files.alembic.models import (
+    StockInfo,
+    Symbol,
+    StockPrice,
+    LastCandle,
+    BasicFinancials,
+    FinancialReport,
+    ReportConcept,
+)
+from drivers.timescale.base_driver import BaseDriver
 
 
-class TimescaleDriver:
-    def __init__(self, log, user: str = 'postgres', password: str = 'password1234',
-                 host: str = 'localhost', port: str = '5500', db: str = 'stock'):
-        self.dsn = f'postgresql+asyncpg://{user}:{password}@{host}:{port}/{db}'
-        self.log = log
-        self._semaphore = asyncio.Semaphore(10)
-
-    async def _create_session(self):
-        await self._semaphore.acquire()
-        engine = create_async_engine(self.dsn, pool_size=100)  # , echo=True
-        return engine, sessionmaker(engine, expire_on_commit=True,
-                                    class_=AsyncSession)
-
+class TimescaleDriver(BaseDriver):
     async def persist_symbols(self, symbols: Set[str]):
         if not symbols:
             return
@@ -31,11 +26,13 @@ class TimescaleDriver:
         engine, session = await self._create_session()
         async with session() as session:
             for symbol in symbols:
-                select_result = await session.execute(select(Symbol).where(Symbol.symbol.in_([symbol])))
+                select_result = await session.execute(
+                    select(Symbol).where(Symbol.symbol.in_([symbol]))
+                )
                 try:
                     select_result.scalars().one()
                 except NoResultFound:
-                    self.log.info(f'persisting symbol {symbol}')
+                    self.log.info(f"persisting symbol {symbol}")
                     session.add(Symbol(symbol=symbol))
 
             await session.commit()
@@ -56,12 +53,15 @@ class TimescaleDriver:
         engine, session = await self._create_session()
         async with session() as session:
             select_result = await session.execute(
-                select(StockInfo)
-                    .where(StockInfo.symbol == info['symbol']))
+                select(StockInfo).where(StockInfo.symbol == info["symbol"])
+            )
             try:
                 select_result = select_result.scalars().one()
-                if int(select_result.market_capitalization) != int(info['market_capitalization']) \
-                        and int(select_result.share_outstanding) != int(info['share_outstanding']):
+                if int(select_result.market_capitalization) != int(
+                    info["market_capitalization"]
+                ) and int(select_result.share_outstanding) != int(
+                    info["share_outstanding"]
+                ):
                     to_update = True
 
             except NoResultFound:
@@ -80,7 +80,7 @@ class TimescaleDriver:
         engine, session = await self._create_session()
         async with session() as session:
             await session.execute(
-                update(StockInfo).where(StockInfo.symbol == info['symbol']).values(info)
+                update(StockInfo).where(StockInfo.symbol == info["symbol"]).values(info)
             )
 
             await session.commit()
@@ -93,10 +93,10 @@ class TimescaleDriver:
 
         historical = list(historical)
 
-        symbol = historical[0]['symbol']
-        resolution = historical[0]['resolution']
+        symbol = historical[0]["symbol"]
+        resolution = historical[0]["resolution"]
 
-        self.log.info(f'persisting price of {symbol} with resolution {resolution}')
+        self.log.info(f"persisting price of {symbol} with resolution {resolution}")
 
         last_candle_time = await self._check_historical(symbol, resolution)
 
@@ -106,8 +106,12 @@ class TimescaleDriver:
             historical_objects.append(last_candle)
             await self._add_all(historical_objects)
         else:
-            remaining_historical, price_to_update = self._filter_historical(historical, last_candle_time)
-            await self._persist_remaining_historical(remaining_historical, price_to_update)
+            remaining_historical, price_to_update = self._filter_historical(
+                historical, last_candle_time
+            )
+            await self._persist_remaining_historical(
+                remaining_historical, price_to_update
+            )
 
     async def _check_historical(self, symbol: str, resolution: str):
         last_candle_time = None
@@ -116,9 +120,10 @@ class TimescaleDriver:
         async with session() as session:
             last_candle = await session.execute(
                 select(StockPrice)
-                    .where(StockPrice.symbol == symbol)
-                    .where(StockPrice.resolution == resolution)
-                    .order_by(StockPrice.time.desc()).limit(1)
+                .where(StockPrice.symbol == symbol)
+                .where(StockPrice.resolution == resolution)
+                .order_by(StockPrice.time.desc())
+                .limit(1)
             )
 
             try:
@@ -135,16 +140,17 @@ class TimescaleDriver:
         return last_candle_time
 
     @staticmethod
-    def _filter_historical(historical: List[dict], last_candle_time) \
-            -> Tuple[Tuple[dict], dict]:
+    def _filter_historical(
+        historical: List[dict], last_candle_time
+    ) -> Tuple[Tuple[dict], dict]:
         price_to_update = None
         remaining_historical = ()
 
         same_date = False
         for price in historical:
-            if price['time'].date() < last_candle_time.date():
+            if price["time"].date() < last_candle_time.date():
                 continue
-            elif price['time'].date() == last_candle_time.date():
+            elif price["time"].date() == last_candle_time.date():
                 if not same_date:
                     price_to_update = price
                     same_date = True
@@ -154,8 +160,9 @@ class TimescaleDriver:
 
         return remaining_historical, price_to_update
 
-    async def _persist_remaining_historical(self, historical: Tuple[dict],
-                                            price_to_update: dict):
+    async def _persist_remaining_historical(
+        self, historical: Tuple[dict], price_to_update: dict
+    ):
         if historical:
             await self._add_all([StockPrice(**price) for price in historical])
 
@@ -171,10 +178,10 @@ class TimescaleDriver:
         async with session() as session:
             update_result = await session.execute(
                 update(StockPrice)
-                    .where(StockPrice.symbol == price_to_update['symbol'])
-                    .where(StockPrice.resolution == price_to_update['resolution'])
-                    .where(StockPrice.time == price_to_update['time'])
-                    .values(price_to_update)
+                .where(StockPrice.symbol == price_to_update["symbol"])
+                .where(StockPrice.resolution == price_to_update["resolution"])
+                .where(StockPrice.time == price_to_update["time"])
+                .values(price_to_update)
             )
 
             if update_result.rowcount == 0:
@@ -189,9 +196,9 @@ class TimescaleDriver:
         async with session() as session:
             update_result = await session.execute(
                 update(LastCandle)
-                    .where(LastCandle.symbol == last_candle['symbol'])
-                    .where(LastCandle.resolution == last_candle['resolution'])
-                    .values(last_candle)
+                .where(LastCandle.symbol == last_candle["symbol"])
+                .where(LastCandle.resolution == last_candle["resolution"])
+                .values(last_candle)
             )
 
             if update_result.rowcount == 0:
@@ -206,16 +213,21 @@ class TimescaleDriver:
             return
 
         financials = list(financials)
-        symbol = financials[0]['symbol']
+        symbol = financials[0]["symbol"]
 
         last_quarterly_period, last_annual_period = await asyncio.gather(
-            self._check_last_financials_persisted(symbol, 'quarterly'),
-            self._check_last_financials_persisted(symbol, 'annual'))
+            self._check_last_financials_persisted(symbol, "quarterly"),
+            self._check_last_financials_persisted(symbol, "annual"),
+        )
 
         if last_quarterly_period is None and last_annual_period is None:
-            await self._add_all([BasicFinancials(**financial) for financial in financials])
+            await self._add_all(
+                [BasicFinancials(**financial) for financial in financials]
+            )
             return
-        await self._persist_remaining_financials(financials, last_quarterly_period, last_annual_period)
+        await self._persist_remaining_financials(
+            financials, last_quarterly_period, last_annual_period
+        )
 
     async def _check_last_financials_persisted(self, symbol: str, time_window: str):
         last_financial_time = None
@@ -224,9 +236,10 @@ class TimescaleDriver:
         async with session() as session:
             last_financials = await session.execute(
                 select(BasicFinancials)
-                    .where(BasicFinancials.symbol == symbol)
-                    .where(BasicFinancials.time_window == time_window)
-                    .order_by(BasicFinancials.period.desc()).limit(1)
+                .where(BasicFinancials.symbol == symbol)
+                .where(BasicFinancials.time_window == time_window)
+                .order_by(BasicFinancials.period.desc())
+                .limit(1)
             )
 
             try:
@@ -241,25 +254,37 @@ class TimescaleDriver:
 
         return last_financial_time
 
-    async def _persist_remaining_financials(self, financials: list, quarterly_period, annual_period):
+    async def _persist_remaining_financials(
+        self, financials: list, quarterly_period, annual_period
+    ):
         remaining_financials = []
         for financial in financials:
-            if financial['time_window'] == 'quarterly' \
-                    and financial['period'] > quarterly_period:
+            if (
+                financial["time_window"] == "quarterly"
+                and financial["period"] > quarterly_period
+            ):
                 remaining_financials.append(financial)
 
-            if financial['time_window'] == 'annual' \
-                    and financial['period'] > annual_period:
+            if (
+                financial["time_window"] == "annual"
+                and financial["period"] > annual_period
+            ):
                 remaining_financials.append(financial)
 
         if remaining_financials:
-            await self._add_all([BasicFinancials(**financial) for financial in remaining_financials])
+            await self._add_all(
+                [BasicFinancials(**financial) for financial in remaining_financials]
+            )
 
-    async def persist_financial_reports(self, reports: Tuple[dict], concepts: Tuple[dict], frequency: str):
+    async def persist_financial_reports(
+        self, reports: Tuple[dict], concepts: Tuple[dict], frequency: str
+    ):
         if not isinstance(reports, tuple):
             return
 
-        reports, last_id_not_persisted = await self._check_reports_and_get_id(reports, frequency)
+        reports, last_id_not_persisted = await self._check_reports_and_get_id(
+            reports, frequency
+        )
         if not reports:
             return
 
@@ -277,21 +302,30 @@ class TimescaleDriver:
     async def _check_reports_and_get_id(self, reports: Tuple[dict], frequency: str):
         """Persist reports and return the first non persisted id"""
         reports = list(reports)
-        symbol = reports[0]['symbol']
+        symbol = reports[0]["symbol"]
 
-        last_year, last_quarter = await self._check_last_report_persisted(symbol, frequency)
+        last_year, last_quarter = await self._check_last_report_persisted(
+            symbol, frequency
+        )
         if not last_year:
             return [FinancialReport(**report) for report in reports], None
 
-        if frequency == 'annual':
-            remaining_reports = [report for report in reports if report.get('year') > last_year]
+        if frequency == "annual":
+            remaining_reports = [
+                report for report in reports if report.get("year") > last_year
+            ]
         else:
-            remaining_reports = [report for report in reports
-                                 if report.get('year') >= last_year
-                                 and report.get('quarter') > last_quarter]
+            remaining_reports = [
+                report
+                for report in reports
+                if report.get("year") >= last_year
+                and report.get("quarter") > last_quarter
+            ]
 
         if remaining_reports:
-            return [FinancialReport(**report) for report in remaining_reports], remaining_reports[0].get('id')
+            return [
+                FinancialReport(**report) for report in remaining_reports
+            ], remaining_reports[0].get("id")
 
         return None, None
 
@@ -303,10 +337,11 @@ class TimescaleDriver:
         async with session() as session:
             last_report = await session.execute(
                 select(FinancialReport)
-                    .where(FinancialReport.symbol == symbol)
-                    .where(FinancialReport.frequency == frequency)
-                    .order_by(FinancialReport.year.desc())
-                    .order_by(FinancialReport.quarter.desc()).limit(1)
+                .where(FinancialReport.symbol == symbol)
+                .where(FinancialReport.frequency == frequency)
+                .order_by(FinancialReport.year.desc())
+                .order_by(FinancialReport.quarter.desc())
+                .limit(1)
             )
 
             try:
@@ -333,7 +368,7 @@ class TimescaleDriver:
         remaining_concepts = []
         # When pull from the api, the order is desc, after the access number persisted, the rest is old
         for i, concept in enumerate(concepts):
-            if concept.get('financial_report') == report_id:
+            if concept.get("financial_report") == report_id:
                 break
 
             remaining_concepts.append(concept)
@@ -351,8 +386,3 @@ class TimescaleDriver:
             await session.commit()
 
         await self._close(session, engine)
-
-    async def _close(self, session, engine):
-        await session.close()
-        await engine.dispose()
-        self._semaphore.release()

@@ -7,7 +7,7 @@ services:
         volumes:
             - ./timescale:/var/lib/postgresql/data
         ports:
-           - "5500:5432"
+            - "5500:5432"
         environment:
             POSTGRES_PASSWORD: password1234
 
@@ -15,7 +15,7 @@ services:
             - superset
 
     finhub-puller:
-        image: puller:test
+        image: puller:latest
         stop_grace_period: 60s
         restart: always
         networks:
