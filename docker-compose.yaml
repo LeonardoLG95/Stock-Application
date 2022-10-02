@@ -1,6 +1,7 @@
 version: "3.9"
 
 services:
+    # Puller
     timescale:
         image: timescale/timescaledb:latest-pg12
         restart: always
@@ -20,6 +21,23 @@ services:
         restart: always
         networks:
             - superset
+
+    # Wallet admin
+    mongo-db:
+        image: mongo:4.4.17-rc2
+        restart: always
+        volumes:
+            - ./mongo:/data
+        ports:
+            - "27017:27017"
+
+        networks:
+            - superset
+    # wallet-back:
+
+    # wallet-front:
+
+
 
 networks:
     superset:
