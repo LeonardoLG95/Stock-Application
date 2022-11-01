@@ -2,8 +2,8 @@ import asyncio
 from datetime import datetime, timedelta
 
 from drivers.finnhub.finnhub_driver import FinnhubDriver
-from finhub_puller.drivers.timescale.puller_driver import TimescaleDriver
-from finhub_puller.utils.logger import Logger
+from drivers.timescale.puller_driver import TimescaleDriver
+from utils.logger import Logger
 from env import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
 
 

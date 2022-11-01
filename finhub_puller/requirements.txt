@@ -4,3 +4,5 @@ sqlalchemy==1.4.35
 alembic==1.7.7
 psycopg2-binary==2.9.3
 python-dotenv==0.20.0
+fastapi==0.79.1
+uvicorn==0.18.2

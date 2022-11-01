@@ -6,7 +6,7 @@ from sqlalchemy.exc import NoResultFound, IntegrityError
 from sqlalchemy.future import select
 from sqlalchemy.sql.expression import update
 
-from finhub_puller.alembic_files.alembic.models import (
+from alembic_files.alembic.models import (
     StockInfo,
     Symbol,
     StockPrice,

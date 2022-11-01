@@ -45,4 +45,4 @@ Here is an example representing the data this project can pull:
 ![superset2](./superset2.png)
 
 Also, the port of the database is exposed in the docker-compose file 
-to access to the database from an external client.
+to access to the database from an external client. -->
