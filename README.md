@@ -1,48 +1,29 @@
-# Stock looker
-An application to pull information of the stocks of the companies 
-that are part of the SP500, Nasdaq100, DOW, ETH and BTC.
+# Stock application
 
-# Wallet administrator
-An application to register your operations and see the evolution of your wallet.
+An application done in Python and JavaScript to provide information about the market in a well presented frontend done with React.
 
-### Pre-requisites 📋
-To use this application you need to have Docker 
-installed and know the basics.
+# How to run
 
-Also, you need to create inside `puller/drivers/finhub` a file called `finnhub_token.py`,
-this file should contain the constant for your token from Finnhub as follows:
+For run you will need installed in your machine docker and docker-compose and after that you can run this application by using from the root directory the following command:
 
-```python
-API_TOKEN = '&token=YOUR-TOKEN-STRING'
+`bash run.sh`
 
-```
+# Soon
 
-## Deploy 📦
-Before deploy, you have the option to uncomment the line `# ENTRYPOINT python3 script.py` 
-and comment the line `ENTRYPOINT python3 service.py` in the Docker file, to run the puller just once.
+- Knowledge of when the puller is working in UI
 
-After that, run the following command inside `puller/`:
-```bash
-docker build . -t finhub_puller:finhub_puller
-```
+- Implementation of charts and tables to represent all the information from the puller
 
-And then, run the docker-compose file after run the superset docker project, or change the network configuration in the docker-compose file.
+- Recommendations of buys and sells based on MACD
 
-## Limitations 
-This program is thought for the free version of Finnhub API, if you desire to use it with a premium account you should change the line 17 from `self._semaphore = asyncio.Semaphore(60)` to `self._semaphore = asyncio.Semaphore(1000)` in `puller/puller.py` 
+- Calculation of MACD by the service itself and not by pulling (this will allow to have the current month)
 
-## Info 📖
-For now, the program `pull information of prices and MACd` in the intervals of day, week and month, 
-also pull some information of the business as the industry, the full name, ipo, etc
+- Find better API for quarterly reports, Finnhub is quite outdated
 
-As you will see in the docker-compose file, 
-this project is compatible with the docker superset project.
+# Later
 
-Here is an example representing the data this project can pull:
+- Pull raw materials price
 
-![superset1](./superset1.png)
+- Pull macro indicators
 
-![superset2](./superset2.png)
-
-Also, the port of the database is exposed in the docker-compose file 
-to access to the database from an external client. -->
+- Creation of TF model with all collected data
