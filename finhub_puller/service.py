@@ -2,7 +2,6 @@ from migration_handler import migration
 from puller import Puller
 from datetime import datetime
 
-from math import inf
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -12,6 +11,9 @@ from drivers.timescale.api_driver import TimescaleDriver
 
 from endpoints import END_POINT
 from utils.logger import Logger
+
+from env import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+
 
 # Start migration
 # migration()
@@ -27,18 +29,40 @@ APP.add_middleware(
 )
 
 LOGGER = Logger("API")
-DB = TimescaleDriver(LOGGER)
+DB = TimescaleDriver(
+    log=LOGGER,
+    user=DB_USER,
+    password=DB_PASSWORD,
+    host=DB_HOST,
+    port=DB_PORT,
+    db=DB_NAME,
+)
 
 
-@APP.post(END_POINT["start"])
+# PULLER_RUNNING = False
+
+
+@APP.get(END_POINT["start"])
 async def start_puller():
+    LOGGER.info("Starting puller!")
     puller = Puller()
     await puller.start()
+    # PULLER_RUNNING = True
     puller.pull_tasks()
+    # PULLER_RUNNING = False
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"response": "Puller finished successfully"},
     )
+
+
+# # KNOW HOW TO DO IT PROPERLY
+# @APP.get(END_POINT["is_running"])
+# async def is_running():
+#     return JSONResponse(
+#         status_code=status.HTTP_200_OK,
+#         content={"is_running": PULLER_RUNNING},
+#     )
 
 
 @APP.get(END_POINT["symbols"])

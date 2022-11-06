@@ -5,6 +5,7 @@ WORKDIR /finhub_puller
 
 ENV PYTHONPATH="/"
 
-RUN pip install -r puller_requirements.txt
+RUN pip install -r requirements.txt
 
-ENTRYPOINT python3 service.py
+# 
+ENTRYPOINT uvicorn service:APP --reload --host "0.0.0.0" --port "8000"

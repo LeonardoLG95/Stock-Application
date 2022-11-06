@@ -7,11 +7,12 @@ from drivers.timescale.base_driver import BaseDriver
 from sqlalchemy.future import select
 from alembic_files.alembic.models import StockInfo, StockPrice
 from sqlalchemy.exc import NoResultFound
+import asyncio
 
 
 class TimescaleDriver(BaseDriver):
-    def __init__(self, log):
-        super().__init__(log=log)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     async def select_stocks(self):
         engine, session = await self._create_session()
@@ -42,28 +43,46 @@ class TimescaleDriver(BaseDriver):
     ):
         engine, session = await self._create_session()
         async with session() as session:
-            prices = await session.execute(
-                (
+            last_price = None
+
+            if end_operation is None:
+                prices, last_price = await asyncio.gather(
+                    *[
+                        session.execute(
+                            select(StockPrice)
+                            .where(StockPrice.symbol == symbol)
+                            .where(StockPrice.resolution == resolution)
+                            .where(StockPrice.time >= start_operation)
+                            .order_by(StockPrice.time.asc())
+                        ),
+                        session.execute(
+                            select(StockPrice)
+                            .where(StockPrice.symbol == symbol)
+                            .where(StockPrice.resolution == "D")
+                            .where(StockPrice.time >= start_operation)
+                            .order_by(StockPrice.time.desc())
+                            .limit(1)
+                        ),
+                    ]
+                )
+            else:
+                prices = await session.execute(
                     select(StockPrice)
                     .where(StockPrice.symbol == symbol)
                     .where(StockPrice.resolution == resolution)
                     .where(StockPrice.time >= start_operation)
                     .where(StockPrice.time <= end_operation)
                     .order_by(StockPrice.time.asc())
-                    if end_operation is not None
-                    else select(StockPrice)
-                    .where(StockPrice.symbol == symbol)
-                    .where(StockPrice.resolution == resolution)
-                    .where(StockPrice.time >= start_operation)
-                    .order_by(StockPrice.time.asc())
                 )
-            )
 
             try:
                 prices = [
                     [price.time.strftime("%Y-%m-%dT%H:%M:%S.%fZ"), price.close]
                     for price in prices.scalars()
                 ]
+                if last_price is not None:
+                    lp = last_price.scalars().one()
+                    prices.append([lp.time.strftime("%Y-%m-%dT%H:%M:%S.%fZ"), lp.close])
 
             except NoResultFound:
                 ...

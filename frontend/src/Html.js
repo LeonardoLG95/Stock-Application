@@ -2,9 +2,24 @@ import React from 'react'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import Chart from 'chart.js/auto'
+import { PULLER_HOST, WALLET_ADMIN_HOST } from './constants.js'
 
+export function refreshDataButton () {
+  const submit = async (e) => {
+    e.preventDefault()
+    await fetch(`http://${PULLER_HOST}/load_data`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    document.reload()
+  }
+
+  return <form className='p-10 rounded grid space-y-5' onSubmit={submit}>
+    <input className="bg-red-500 hover:bg-red-400 text-white font-bold py-2 px-4 border-b-4 border-red-700 hover:border-red-500 rounded" type="submit" value="Refresh data"></input>
+  </form>
+}
 export async function chart (buyOperations, sellOperations) {
-  const chartData = await fetch('http://127.0.0.1:3010/wallet_evolution', {
+  const chartData = await fetch(`http://${WALLET_ADMIN_HOST}/wallet_evolution`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ buyOperations, sellOperations, resolution: 'M' })
@@ -45,7 +60,7 @@ export function buyForm (symbolList) {
     const form = new FormData(e.target)
     const data = Object.fromEntries(form.entries())
 
-    await fetch('http://127.0.0.1:3010/record_buy', {
+    await fetch(`http://${WALLET_ADMIN_HOST}/record_buy`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -65,7 +80,7 @@ export function sellForm (symbolList) {
     const form = new FormData(e.target)
     const data = Object.fromEntries(form.entries())
 
-    await fetch('http://127.0.0.1:3010/record_sell', {
+    await fetch(`http://${WALLET_ADMIN_HOST}/record_sell`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -95,7 +110,7 @@ function operationForm (stockList, submitButton, submitFunction) {
 }
 
 export function operationTable (operations, operationType) {
-  const row = (_id, operationDate, symbol, quantity, eurPrice, operationType) => {
+  const row = (operation, operationType) => {
     const deleteButton = (_id, operationType) => {
       const deleteAction = async (e) => {
         e.preventDefault()
@@ -103,7 +118,7 @@ export function operationTable (operations, operationType) {
         const data = Object.fromEntries(form.entries())
 
         console.log(data)
-        await fetch(`http://127.0.0.1:3010/delete_${data.operationType}`, {
+        await fetch(`http://${WALLET_ADMIN_HOST}/delete_${data.operationType}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -115,19 +130,24 @@ export function operationTable (operations, operationType) {
 
       return <form onSubmit={deleteAction}>
         <input className="bg-red-500 hover:bg-red-400 py-2 px-4 border-b-4 border-red-700 hover:border-red-500 rounded" type="image" src="/trashBin.svg"></input>
-        <input type="hidden" name="_id" value={_id}></input>
+        <input type="hidden" name="_id" value={operation._id}></input>
         <input type="hidden" name="operationType" value={operationType}></input>
         </form>
     }
 
-    return <tr key={_id} className={'bg-white-500 border-b transition duration-300 ease-in-out'}>
-        <td className="font-light px-6 py-4 text-center">{operationDate}</td>
-        <td className="font-light px-6 py-4 text-center">{symbol}</td>
-        <td className="font-light px-6 py-4 text-center">{quantity}</td>
-        <td className="font-light px-6 py-4 text-center">{eurPrice}€</td>
-        <td className="font-light px-6 py-4 text-center">{deleteButton(_id, operationType)}</td>
+    const date = new Date(operation.operationDate)
+    const pad = (s) => { return (s < 10) ? '0' + s : s }
+
+    return <tr key={operation._id} className={'bg-white-500 border-b transition duration-300 ease-in-out'}>
+        <td className="font-light px-6 py-4 text-center">{[pad(date.getDate()), pad(date.getMonth() + 1), date.getFullYear()].join('-')}</td>
+        <td className="font-light px-6 py-4 text-center">{operation.symbol}</td>
+        <td className="font-light px-6 py-4 text-center">{operation.quantity}</td>
+        <td className="font-light px-6 py-4 text-center">{operation.stockPrice}$</td>
+        <td className="font-light px-6 py-4 text-center">{operation.quantity * operation.stockPrice}$</td>
+        <td className="font-light px-6 py-4 text-center">{operation.eurPrice}€</td>
+        <td className="font-light px-6 py-4 text-center">{deleteButton(operation._id, operationType)}</td>
       </tr>
   }
 
-  return operations ? operations.map(o => row(o._id, o.operationDate, o.symbol, o.quantity, o.eurPrice, operationType)) : <tr><td></td><td>Not able to load operations...</td><td></td></tr>
+  return operations ? operations.map(operation => row(operation, operationType)) : <tr><td></td><td>Not able to load operations...</td><td></td></tr>
 }

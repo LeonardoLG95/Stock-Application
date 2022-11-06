@@ -45,25 +45,20 @@ class Puller:
         index_symbols = await self._finnhub_driver.get_symbols_of_index(index_symbol)
         self._stock_symbols = self._stock_symbols.union(index_symbols)
 
-    def pull_tasks(self):
-        self.create_task(function=self.get_and_persist_info(), weeks=4)
-        self.create_task(function=self.get_and_persist_financials(), weeks=4)
-        self.create_task(
-            function=self.get_and_persist_prices(self._resolutions[0]), days=1
+    async def pull_tasks(self):
+        await asyncio.gather(
+            *[
+                self.get_and_persist_info(),
+                self.get_and_persist_financials(),
+                self.get_and_persist_prices(self._resolutions[0]),
+                self.get_and_persist_prices(self._resolutions[1]),
+                self.get_and_persist_prices(self._resolutions[2]),
+                self.get_and_persists_financial_reports("quarterly"),
+                self.get_and_persists_financial_reports("annual"),
+            ]
         )
-        self.create_task(
-            function=self.get_and_persist_prices(self._resolutions[1]), weeks=1
-        )
-        self.create_task(
-            function=self.get_and_persist_prices(self._resolutions[2]), weeks=4
-        )
-        self.create_task(
-            function=self.get_and_persists_financial_reports("quarterly"), weeks=4
-        )
-        self.create_task(
-            function=self.get_and_persists_financial_reports("annual"), weeks=4
-        )
-        self.create_task(function=self._get_symbols(), weeks=1)
+
+        await self.close()
 
     async def get_and_persist_info(self):
         await asyncio.gather(
@@ -115,18 +110,6 @@ class Puller:
                     reports, concepts, frequency
                 )
             )
-
-    def create_task(self, function, **kwargs):
-        async def task(f, **k):
-            while True:
-                self._log.info(f"=> starting task {f.__name__}")
-                await f
-                now = datetime.now()
-                next_repeat = now + timedelta(**k)
-                self._log.info(f"=> task {f.__name__} ended ✓")
-                await asyncio.sleep(next_repeat.timestamp())
-
-        asyncio.create_task(task(function, **kwargs))
 
     async def close(self):
         await self._finnhub_driver.close()

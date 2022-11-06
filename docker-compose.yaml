@@ -1,6 +1,22 @@
 version: "3.9"
 
 services:
+    # Proxy
+    traefik:
+        image: "traefik:v2.9"
+        container_name: "traefik"
+        command:
+            #- "--log.level=DEBUG"
+            - "--api.insecure=true"
+            - "--providers.docker=true"
+            - "--providers.docker.exposedbydefault=false"
+            - "--entrypoints.web.address=:80"
+        ports:
+            - "80:80"
+            - "8080:8080"
+        volumes:
+            - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
     # Puller
     timescale:
         image: timescale/timescaledb:latest-pg12
@@ -12,15 +28,20 @@ services:
         environment:
             POSTGRES_PASSWORD: password1234
 
-        networks:
-            - superset
-
     finhub-puller:
-        image: puller:latest
+        image: finhub-puller:latest
+        volumes:
+            - ./finhub_puller:/finhub_puller
+        ports:
+            - "8000:8000"
         stop_grace_period: 60s
         restart: always
-        networks:
-            - superset
+        labels:
+            - "traefik.enable=true"
+            # The domain the service will respond to
+            - "traefik.http.routers.puller.rule=Host(`puller.localhost`)"
+            # Allow request only from the predefined entry point named "web"
+            - "traefik.http.routers.puller.entrypoints=web"
 
     # Wallet admin
     mongo-db:
@@ -28,18 +49,31 @@ services:
         restart: always
         volumes:
             - ./mongo:/data
+
+    wallet-admin:
+        image: wallet-admin:latest
+        volumes:
+            - ./wallet_admin:/wallet_admin
+        restart: always
         ports:
-            - "27017:27017"
+            - "3010:3010"
+        labels:
+            - "traefik.enable=true"
+            # The domain the service will respond to
+            - "traefik.http.routers.walletadmin.rule=Host(`walletadmin.localhost`)"
+            # Allow request only from the predefined entry point named "web"
+            - "traefik.http.routers.walletadmin.entrypoints=web"
 
-        networks:
-            - superset
-    # wallet-back:
-
-    # wallet-front:
-
-
-
-networks:
-    superset:
-        external:
-            name: superset_default
+    wallet-front:
+        image: frontend:latest
+        volumes:
+            - ./frontend:/frontend
+        restart: always
+        ports:
+            - "3000:3000"
+        labels:
+            - "traefik.enable=true"
+            # The domain the service will respond to
+            - "traefik.http.routers.wallet.rule=Host(`wallet.localhost`)"
+            # Allow request only from the predefined entry point named "web"
+            - "traefik.http.routers.wallet.entrypoints=web"

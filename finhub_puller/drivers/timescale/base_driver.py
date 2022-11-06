@@ -10,8 +10,8 @@ class BaseDriver:
         log,
         user: str = "postgres",
         password: str = "password1234",
-        host: str = "localhost",
-        port: str = "5500",
+        host: str = "timescale",
+        port: str = "5432",
         db: str = "stock",
     ):
         self.dsn = f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{db}"
