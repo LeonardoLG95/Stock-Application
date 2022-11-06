@@ -4,11 +4,25 @@ An application done in Python and JavaScript to provide information about the ma
 
 # How to run
 
-For run you will need installed in your machine docker and docker-compose and after that you can run this application by using from the root directory the following command:
+For run you need: 
+- docker and docker-compose in your machine.
+
+- a Finnhub token in puller env, to be able to pull data.
+
+After that you can run this application by using from the root directory the following command:
 
 `bash run.sh`
 
-# Soon
+# How to use
+
+With your browser go to `wallet.localhost`, there you can register your stocks and see the evolution of your wallet, apart you can start to pull information with the `Refresh data` button (Be careful, just press one time and go see the logs, your computer could implode if you start pulling so many times at once).
+
+![Stock application](wallet_1.png)
+![Stock application](wallet_2.png)
+
+# Next features
+
+## Soon
 
 - Knowledge of when the puller is working in UI
 
@@ -20,7 +34,7 @@ For run you will need installed in your machine docker and docker-compose and af
 
 - Find better API for quarterly reports, Finnhub is quite outdated
 
-# Later
+## Later
 
 - Pull raw materials price
 
