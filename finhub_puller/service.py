@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
 
+import asyncio
 from drivers.timescale.api_driver import TimescaleDriver
 
 from endpoints import END_POINT
@@ -39,30 +40,46 @@ DB = TimescaleDriver(
 )
 
 
-# PULLER_RUNNING = False
+APP.state.pull_task = None
 
 
 @APP.get(END_POINT["start"])
 async def start_puller():
-    LOGGER.info("Starting puller!")
-    puller = Puller()
-    await puller.start()
-    # PULLER_RUNNING = True
-    puller.pull_tasks()
-    # PULLER_RUNNING = False
+    async def pull():
+        LOGGER.info("Starting puller!")
+        puller = Puller()
+        await puller.start()
+        await puller.pull_tasks()
+        await puller.close()
+
+    if APP.state.pull_task and APP.state.pull_task.done() is False:
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={"response": "Puller is already working"},
+        )
+
+    print(APP.state.pull_task)
+    APP.state.pull_task = asyncio.create_task(pull())
+    print(APP.state.pull_task.done())
+
     return JSONResponse(
         status_code=status.HTTP_200_OK,
-        content={"response": "Puller finished successfully"},
+        content={"response": "Puller started"},
     )
 
 
-# # KNOW HOW TO DO IT PROPERLY
-# @APP.get(END_POINT["is_running"])
-# async def is_running():
-#     return JSONResponse(
-#         status_code=status.HTTP_200_OK,
-#         content={"is_running": PULLER_RUNNING},
-#     )
+@APP.get(END_POINT["is_running"])
+async def is_running():
+    if APP.state.pull_task is None:
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"response": False},
+        )
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"response": not APP.state.pull_task.done()},
+    )
 
 
 @APP.get(END_POINT["symbols"])

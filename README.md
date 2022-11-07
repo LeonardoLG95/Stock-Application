@@ -24,13 +24,11 @@ With your browser go to `wallet.localhost`, there you can register your stocks a
 
 ## Soon
 
-- Knowledge of when the puller is working in UI
-
 - Implementation of charts and tables to represent all the information from the puller
 
-- Recommendations of buys and sells based on MACD
-
 - Calculation of MACD by the service itself and not by pulling (this will allow to have the current month)
+
+- Recommendations of buys and sells based on MACD
 
 - Find better API for quarterly reports, Finnhub is quite outdated
 

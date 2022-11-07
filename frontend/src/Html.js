@@ -4,6 +4,12 @@ import 'react-datepicker/dist/react-datepicker.css'
 import Chart from 'chart.js/auto'
 import { PULLER_HOST, WALLET_ADMIN_HOST } from './constants.js'
 
+export function refreshingData () {
+  return <div>
+    <p>Loading data already...</p>
+    <img src='/loading.gif'></img>
+    </div>
+}
 export function refreshDataButton () {
   const submit = async (e) => {
     e.preventDefault()
@@ -11,7 +17,7 @@ export function refreshDataButton () {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' }
     })
-    document.reload()
+    window.location.reload()
   }
 
   return <form className='p-10 rounded grid space-y-5' onSubmit={submit}>

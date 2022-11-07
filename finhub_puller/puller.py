@@ -1,5 +1,4 @@
 import asyncio
-from datetime import datetime, timedelta
 
 from drivers.finnhub.finnhub_driver import FinnhubDriver
 from drivers.timescale.puller_driver import TimescaleDriver
