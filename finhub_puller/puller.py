@@ -45,17 +45,13 @@ class Puller:
         self._stock_symbols = self._stock_symbols.union(index_symbols)
 
     async def pull_tasks(self):
-        await asyncio.gather(
-            *[
-                self.get_and_persist_info(),
-                self.get_and_persist_financials(),
-                self.get_and_persist_prices(self._resolutions[0]),
-                self.get_and_persist_prices(self._resolutions[1]),
-                self.get_and_persist_prices(self._resolutions[2]),
-                self.get_and_persists_financial_reports("quarterly"),
-                self.get_and_persists_financial_reports("annual"),
-            ]
-        )
+        await self.get_and_persist_info()
+        # await self.get_and_persist_financials()
+        await self.get_and_persist_prices(self._resolutions[0])
+        await self.get_and_persist_prices(self._resolutions[1])
+        await self.get_and_persist_prices(self._resolutions[2])
+        # await self.get_and_persists_financial_reports("quarterly")
+        # await self.get_and_persists_financial_reports("annual")
 
         await self.close()
 
@@ -77,7 +73,9 @@ class Puller:
     async def _get_price(self, symbol: str, resolution: str):
         price = await self._finnhub_driver.get_symbol_price(symbol, resolution)
         if price:
-            asyncio.create_task(self._timescale_driver.persist_historical(price))
+            asyncio.create_task(
+                self._timescale_driver.persist_historical(price, resolution)
+            )
 
     async def get_and_persist_financials(self):
         await asyncio.gather(

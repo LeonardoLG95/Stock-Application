@@ -15,13 +15,6 @@ from sqlalchemy.orm import declarative_base
 Base = declarative_base()
 
 
-def random_id():
-    import uuid
-
-    id = uuid.uuid4()
-    return id.hex
-
-
 class Symbol(Base):
     __tablename__ = "symbol"
 
@@ -61,13 +54,44 @@ class LastCandle(Base):
     volume = Column(BigInteger, nullable=False)
 
 
-class StockPrice(Base):
-    __tablename__ = "stock_price"
+class MonthlyStockPrice(Base):
+    __tablename__ = "monthly_stock_price"
 
     id = Column(BigInteger, nullable=False, autoincrement=True, primary_key=True)
     time = Column(DateTime(timezone=False), nullable=False)
     symbol = Column(String, ForeignKey("symbol.symbol"), nullable=False)
-    resolution = Column(CHAR, nullable=False)
+    close = Column(Float, nullable=False)
+    high = Column(Float, nullable=False)
+    low = Column(Float, nullable=False)
+    macd = Column(Float, nullable=False)
+    macd_hist = Column(Float, nullable=False)
+    macd_signal = Column(Float, nullable=False)
+    open = Column(Float, nullable=False)
+    volume = Column(BigInteger, nullable=False)
+
+
+class WeeklyStockPrice(Base):
+    __tablename__ = "weekly_stock_price"
+
+    id = Column(BigInteger, nullable=False, autoincrement=True, primary_key=True)
+    time = Column(DateTime(timezone=False), nullable=False)
+    symbol = Column(String, ForeignKey("symbol.symbol"), nullable=False)
+    close = Column(Float, nullable=False)
+    high = Column(Float, nullable=False)
+    low = Column(Float, nullable=False)
+    macd = Column(Float, nullable=False)
+    macd_hist = Column(Float, nullable=False)
+    macd_signal = Column(Float, nullable=False)
+    open = Column(Float, nullable=False)
+    volume = Column(BigInteger, nullable=False)
+
+
+class DailyStockPrice(Base):
+    __tablename__ = "daily_stock_price"
+
+    id = Column(BigInteger, nullable=False, autoincrement=True, primary_key=True)
+    time = Column(DateTime(timezone=False), nullable=False)
+    symbol = Column(String, ForeignKey("symbol.symbol"), nullable=False)
     close = Column(Float, nullable=False)
     high = Column(Float, nullable=False)
     low = Column(Float, nullable=False)
@@ -105,6 +129,14 @@ class BasicFinancials(Base):
     total_debt_to_total_asset = Column(Float)
     total_debt_to_total_capital = Column(Float)
     total_ratio = Column(Float)
+    book_value = Column(Float)
+    ev = Column(Float)
+    quick_ratio = Column(Float)
+    fcf_margin = Column(Float)
+    roa = Column(Float)
+    roe = Column(Float)
+    pb = Column(Float)
+    pe = Column(Float)
 
 
 class FinancialReport(Base):
@@ -136,9 +168,21 @@ class ReportConcept(Base):
 
 
 event.listen(
-    StockPrice.__table__,
+    MonthlyStockPrice.__table__,
     "after_create",
-    DDL(f"SELECT create_hypertable('{StockPrice.__tablename__}', 'time');"),
+    DDL(f"SELECT create_hypertable('{MonthlyStockPrice.__tablename__}', 'time');"),
+)
+
+event.listen(
+    WeeklyStockPrice.__table__,
+    "after_create",
+    DDL(f"SELECT create_hypertable('{WeeklyStockPrice.__tablename__}', 'time');"),
+)
+
+event.listen(
+    DailyStockPrice.__table__,
+    "after_create",
+    DDL(f"SELECT create_hypertable('{DailyStockPrice.__tablename__}', 'time');"),
 )
 
 event.listen(

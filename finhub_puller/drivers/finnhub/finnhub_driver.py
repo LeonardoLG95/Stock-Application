@@ -135,7 +135,7 @@ class FinnhubDriver:
         if price and self._check_integrity_keys(
             tuple(price.keys()), EXPECTED_RESPONSE_KEYS["candle_keys"]
         ):
-            return self._parse_symbol_price(symbol, resolution, price)
+            return self._parse_symbol_price(symbol, price)
 
     async def _fetch_symbol_price(self, symbol: str, resolution: str):
         now = self._now()
@@ -143,9 +143,7 @@ class FinnhubDriver:
             f"{self.url}{END_POINTS['stock_price_endpoint'](symbol, resolution, now)}{API_TOKEN}"
         )
 
-    def _parse_symbol_price(
-        self, symbol: str, resolution: str, price: dict
-    ) -> Tuple[dict]:
+    def _parse_symbol_price(self, symbol: str, price: dict) -> Tuple[dict]:
         parsed_prices = ()
         try:
             for i in range(len(price[EXPECTED_RESPONSE_KEYS["candle_keys"][0]])):
@@ -153,7 +151,6 @@ class FinnhubDriver:
                     {
                         "time": datetime.fromtimestamp(price["t"][i]),
                         "symbol": symbol,
-                        "resolution": resolution,
                         "close": price["c"][i],
                         "high": price["h"][i],
                         "low": price["l"][i],

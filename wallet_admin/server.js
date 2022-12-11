@@ -13,6 +13,7 @@ const sellList = process.env.SELL_LIST_ENDPOINT
 const deleteBuyEndpoint = process.env.DELETE_BUY_ENDPOINT
 const deleteSellEndpoint = process.env.DELETE_SELL_ENDPOINT
 const walletEvolutionEndpoint = process.env.WALLET_EVOLUTION_ENDPOINT
+const industryEndpoint = process.env.INDUSTRY_CHART_ENDPOINT
 
 // Mongo declarations
 const mongoose = require("mongoose")
@@ -237,6 +238,112 @@ app.post(walletEvolutionEndpoint, async (req, res) => {
 
 	// console.log(walletEvolution)
 	res.json({ result: walletEvolution }) // Missing sells
+})
+
+app.post(industryEndpoint, async (req, res) => {
+	function sumSymbolQuantities(buyOperations) {
+		let symbols = {}
+		for (let b of buyOperations) {
+			let symbol = b.symbol
+			let quantity = b.quantity
+
+			if (symbols[symbol] === undefined) {
+				symbols = Object.assign({}, { [symbol]: { quantity, last_price: b.stockPrice } }, symbols)
+			}
+			else {
+				symbols[symbol].quantity = symbols[symbol].quantity + quantity
+			}
+		}
+
+		return symbols
+	}
+
+	function subSymbolQuantities(sellOperations, symbols) {
+		for (let s of sellOperations) {
+			let symbol = s.symbol
+			let quantity = s.quantity
+
+			symbols[symbol].quantity = symbols[symbol].quantity - quantity
+
+			if (symbols[symbol].quantity === 0) {
+				delete symbols[symbol]
+			}
+		}
+
+		return symbols
+	}
+
+	async function getInfoForSymbols(symbols) {
+		async function getIndustry(symbol) {
+			let industry = await fetch(`http://${puller_host}:8000/industry`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ symbol })
+			})
+				.then(response => response.json())
+				.then(data => data.response)
+
+			return industry
+		}
+
+		async function getLastPrice(symbol) {
+			let last_price = await fetch(`http://${puller_host}:8000/last_price`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ symbol })
+			})
+				.then(response => response.json())
+				.then(data => data.response)
+
+			return last_price
+		}
+
+		let tickers = Object.keys(symbols)
+		for (let symbol of tickers) {
+			symbols[symbol].industry = await getIndustry(symbol)
+			let last_price = await getLastPrice(symbol)
+
+			if (last_price) {
+				symbols[symbol].last_price = last_price
+			}
+		}
+
+		return symbols
+	}
+
+	function calculateIndustries(symbols) {
+		let industries = {}
+
+		let tickers = Object.keys(symbols)
+		for (let symbol of tickers) {
+			let industry = symbols[symbol].industry
+			let price = symbols[symbol].last_price * symbols[symbol].quantity
+
+			delete symbols[symbol].last_price
+			delete symbols[symbol].quantity
+
+			if (industries[industry] === undefined) {
+				industries = Object.assign({}, { [industry]: price }, industries)
+			}
+			else {
+				industries[industry] += price
+			}
+		}
+
+		return industries
+	}
+
+	let buyOperations = req.body.buyOperations
+	let sellOperations = req.body.sellOperations
+
+	let symbols = sumSymbolQuantities(buyOperations)
+	symbols = subSymbolQuantities(sellOperations, symbols)
+	symbols = await getInfoForSymbols(symbols)
+
+	let industries = calculateIndustries(symbols)
+	console.log(industries)
+
+	res.json({ result: industries })
 })
 
 const listener = app.listen(port || 3000, () => {

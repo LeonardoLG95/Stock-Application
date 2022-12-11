@@ -2,14 +2,15 @@ import React from 'react'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import Chart from 'chart.js/auto'
-import { PULLER_HOST, WALLET_ADMIN_HOST } from './constants.js'
+import { PULLER_HOST, WALLET_ADMIN_HOST } from '../../constants.js'
 
 export function refreshingData () {
   return <div>
-    <p>Loading data already...</p>
+    <p className='font-medium text-center'>Loading data already...</p>
     <img src='/loading.gif'></img>
     </div>
 }
+
 export function refreshDataButton () {
   const submit = async (e) => {
     e.preventDefault()
@@ -20,11 +21,12 @@ export function refreshDataButton () {
     window.location.reload()
   }
 
-  return <form className='p-10 rounded grid space-y-5' onSubmit={submit}>
+  return <form onSubmit={submit}>
     <input className="bg-red-500 hover:bg-red-400 text-white font-bold py-2 px-4 border-b-4 border-red-700 hover:border-red-500 rounded" type="submit" value="Refresh data"></input>
   </form>
 }
-export async function chart (buyOperations, sellOperations) {
+
+export async function priceChart (buyOperations, sellOperations) {
   const chartData = await fetch(`http://${WALLET_ADMIN_HOST}/wallet_evolution`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -56,7 +58,59 @@ export async function chart (buyOperations, sellOperations) {
       }
     }
   }
-  const canvas = document.getElementById('chartLine').getContext('2d')
+  const canvas = document.getElementById('priceChart').getContext('2d')
+  window.priceLine = new Chart(canvas, config)
+}
+
+export async function pieChart (buyOperations, sellOperations) {
+  const chartData = await fetch(`http://${WALLET_ADMIN_HOST}/industry_chart`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ buyOperations, sellOperations })
+  })
+    .then(response => response.json())
+    .then(data => data.result)
+
+  const generateColors = (nIndustries) => {
+    const randN = () => {
+      const difference = 255 - 0
+      const rand = Math.random()
+
+      return Math.floor(rand * difference)
+    }
+
+    const colors = []
+    for (let i = 0; i < nIndustries; i++) {
+      colors.push(`rgb(${randN()}, ${randN()}, ${randN()})`)
+    }
+    console.log(colors)
+
+    return colors
+  }
+
+  const industries = Object.keys(chartData)
+  const prices = Object.values(chartData)
+  console.log(industries.length)
+  const colors = generateColors(industries.length)
+
+  const config = {
+    type: 'pie',
+    data: {
+      labels: industries,
+      datasets: [{
+        label: 'Industries',
+        data: prices,
+        backgroundColor: colors,
+        borderColor: 'rgb(0, 0, 0)'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  }
+
+  const canvas = document.getElementById('pieChart').getContext('2d')
   window.priceLine = new Chart(canvas, config)
 }
 
@@ -103,7 +157,7 @@ export function sellForm (symbolList) {
 function operationForm (stockList, submitButton, submitFunction) {
   const [operationDate, setOperationDate] = React.useState(new Date())
 
-  return <form className='p-10 rounded grid space-y-5' onSubmit={submitFunction}>
+  return <form className='rounded grid space-y-2' onSubmit={submitFunction}>
             <DatePicker placeholderText='Date' name="operationDate" value={operationDate} selected={operationDate} onChange={(date) => setOperationDate(date)} />
             <select placeholder="Symbol" name="symbol">
               {stockList ? stockList.map(stock => <option value={stock[1]} key={stock[1]}>{stock[0]}</option>) : <option value="null">Not able to load options...</option>}
@@ -144,7 +198,7 @@ export function operationTable (operations, operationType) {
     const date = new Date(operation.operationDate)
     const pad = (s) => { return (s < 10) ? '0' + s : s }
 
-    return <tr key={operation._id} className={'bg-white-500 border-b transition duration-300 ease-in-out'}>
+    return <tr key={operation._id} className="bg-white-500 border-b transition duration-300 ease-in-out">
         <td className="font-light px-6 py-4 text-center">{[pad(date.getDate()), pad(date.getMonth() + 1), date.getFullYear()].join('-')}</td>
         <td className="font-light px-6 py-4 text-center">{operation.symbol}</td>
         <td className="font-light px-6 py-4 text-center">{operation.quantity}</td>

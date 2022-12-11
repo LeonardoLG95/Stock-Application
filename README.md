@@ -34,8 +34,8 @@ With your browser go to `wallet.localhost`, there you can register your stocks a
 
 ## Later
 
-- Pull raw materials price
-
 - Pull macro indicators
+
+- Pull raw materials price
 
 - Creation of TF model with all collected data

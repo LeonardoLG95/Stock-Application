@@ -8,4 +8,5 @@ cd -
 cd frontend
 docker build . -t frontend:latest &
 wait
+# docker-compose up -d
 docker-compose up

@@ -58,9 +58,7 @@ async def start_puller():
             content={"response": "Puller is already working"},
         )
 
-    print(APP.state.pull_task)
     APP.state.pull_task = asyncio.create_task(pull())
-    print(APP.state.pull_task.done())
 
     return JSONResponse(
         status_code=status.HTTP_200_OK,
@@ -95,6 +93,24 @@ async def get_symbols() -> JSONResponse:
     )
 
 
+@APP.post(END_POINT["history"])
+async def get_symbol_data(request: Request) -> JSONResponse:
+    request = await request.json()
+    symbol = request.get("symbol")
+    resolution = request.get("resolution")
+
+    prices = await DB.select_history(symbol, resolution)
+    if prices is None:
+        raise HTTPException(status_code=404, detail={"response": "Query not found"})
+
+    LOGGER.info(f"Prices for symbol {symbol} on resolution {resolution} retrieved")
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"response": prices if len(prices) > 0 else None},
+    )
+
+
 @APP.post(END_POINT["symbol_prices"])
 async def get_symbol_data(request: Request) -> JSONResponse:
     request = await request.json()
@@ -121,4 +137,57 @@ async def get_symbol_data(request: Request) -> JSONResponse:
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"response": prices if len(prices) > 0 else None},
+    )
+
+
+@APP.get(END_POINT["by_macd"])
+async def get_symbol_data() -> JSONResponse:
+    stocks = await DB.select_recommendations_by_macd()
+    if stocks is None:
+        raise HTTPException(status_code=404, detail={"response": "Query not found"})
+
+    LOGGER.info(f"Recommended stocks by MACD pulled")
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"response": stocks if len(stocks) > 0 else None},
+    )
+
+
+@APP.post(END_POINT["industry"])
+async def get_symbol_industry(request: Request) -> JSONResponse:
+    request = await request.json()
+
+    symbol = request.get("symbol")
+
+    industry = await DB.select_symbol_industry(symbol)
+    if industry is None:
+        raise HTTPException(status_code=404, detail={"response": "Query not found"})
+
+    LOGGER.info(f"Stock industry pulled")
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"response": industry},
+    )
+
+
+@APP.post(END_POINT["last_price"])
+async def get_symbol_last_price(request: Request) -> JSONResponse:
+    request = await request.json()
+
+    symbol = request.get("symbol")
+
+    price = await DB.select_symbol_last_price(symbol)
+    if price is None:
+        raise HTTPException(status_code=404, detail={"response": "Query not found"})
+
+    LOGGER.info(f"Last stock close price pulled")
+
+    if not isinstance(price, float):
+        price = None
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"response": price},
     )

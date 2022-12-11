@@ -1,5 +1,5 @@
 import asyncio
-from typing import Set, List, Tuple
+from typing import Union, Set, List, Tuple
 
 from sqlalchemy.exc import NoResultFound, IntegrityError
 
@@ -9,13 +9,22 @@ from sqlalchemy.sql.expression import update
 from alembic_files.alembic.models import (
     StockInfo,
     Symbol,
-    StockPrice,
+    MonthlyStockPrice,
+    WeeklyStockPrice,
+    DailyStockPrice,
     LastCandle,
     BasicFinancials,
     FinancialReport,
     ReportConcept,
 )
 from drivers.timescale.base_driver import BaseDriver
+
+
+RESOLUTIONS = {
+    "D": DailyStockPrice,
+    "W": WeeklyStockPrice,
+    "M": MonthlyStockPrice,
+}
 
 
 class TimescaleDriver(BaseDriver):
@@ -87,42 +96,45 @@ class TimescaleDriver(BaseDriver):
 
         await self._close(session, engine)
 
-    async def persist_historical(self, historical: Tuple[dict]):
+    async def persist_historical(self, historical: Tuple[dict], resolution: str):
         if not isinstance(historical, tuple):
             return
 
         historical = list(historical)
-
         symbol = historical[0]["symbol"]
-        resolution = historical[0]["resolution"]
-
         self.log.info(f"persisting price of {symbol} with resolution {resolution}")
 
         last_candle_time = await self._check_historical(symbol, resolution)
 
         if not last_candle_time:
-            last_candle = LastCandle(**historical[len(historical) - 1])
-            historical_objects = [StockPrice(**price) for price in historical]
+            model = RESOLUTIONS[resolution]
+            historical_objects = [model(**price) for price in historical]
+
+            last_candle_data = historical[len(historical) - 1]
+            last_candle_data["resolution"] = resolution
+            last_candle = LastCandle(**last_candle_data)
+
             historical_objects.append(last_candle)
+
             await self._add_all(historical_objects)
         else:
             remaining_historical, price_to_update = self._filter_historical(
                 historical, last_candle_time
             )
             await self._persist_remaining_historical(
-                remaining_historical, price_to_update
+                remaining_historical, price_to_update, resolution
             )
 
     async def _check_historical(self, symbol: str, resolution: str):
         last_candle_time = None
 
+        StockModel = RESOLUTIONS[resolution]
         engine, session = await self._create_session()
         async with session() as session:
             last_candle = await session.execute(
-                select(StockPrice)
-                .where(StockPrice.symbol == symbol)
-                .where(StockPrice.resolution == resolution)
-                .order_by(StockPrice.time.desc())
+                select(StockModel)
+                .where(StockModel.symbol == symbol)
+                .order_by(StockModel.time.desc())
                 .limit(1)
             )
 
@@ -161,31 +173,34 @@ class TimescaleDriver(BaseDriver):
         return remaining_historical, price_to_update
 
     async def _persist_remaining_historical(
-        self, historical: Tuple[dict], price_to_update: dict
+        self, historical: Tuple[dict], price_to_update: dict, resolution: str
     ):
         if historical:
-            await self._add_all([StockPrice(**price) for price in historical])
-
             last_candle = historical[len(historical) - 1]
+
+            model = RESOLUTIONS[resolution]
+            historical = [model(**price) for price in historical]
+            await self._add_all(historical)
         else:
             last_candle = price_to_update
 
-        await self._update_stock_price(price_to_update)
+        await self._update_stock_price(price_to_update, resolution)
+        last_candle["resolution"] = resolution
         await self._update_last_candle(last_candle)
 
-    async def _update_stock_price(self, price_to_update: dict):
+    async def _update_stock_price(self, price_to_update: dict, resolution: str):
         engine, session = await self._create_session()
+        StockModel = RESOLUTIONS[resolution]
         async with session() as session:
             update_result = await session.execute(
-                update(StockPrice)
-                .where(StockPrice.symbol == price_to_update["symbol"])
-                .where(StockPrice.resolution == price_to_update["resolution"])
-                .where(StockPrice.time == price_to_update["time"])
+                update(StockModel)
+                .where(StockModel.symbol == price_to_update["symbol"])
+                .where(StockModel.time == price_to_update["time"])
                 .values(price_to_update)
             )
 
             if update_result.rowcount == 0:
-                session.add(StockPrice(**price_to_update))
+                session.add(StockModel(**price_to_update))
 
             await session.commit()
 
@@ -374,6 +389,25 @@ class TimescaleDriver(BaseDriver):
             remaining_concepts.append(concept)
 
         return [ReportConcept(**concept) for concept in remaining_concepts]
+
+    def _convert_price_to_model(
+        self,
+        historical: Union[list, tuple],
+        resolution: str,
+    ) -> List[dict]:
+        if not isinstance(historical, list):
+            historical = list(historical)
+
+        for i, price in enumerate(historical):
+            if price.get("resolution") is not None:
+                historical[i].pop("resolution")
+
+        if resolution == "D":
+            return [DailyStockPrice(**price) for price in historical]
+        elif resolution == "W":
+            return [WeeklyStockPrice(**price) for price in historical]
+
+        return [MonthlyStockPrice(**price) for price in historical]
 
     async def _add_all(self, list_of_objects: list):
         engine, session = await self._create_session()
